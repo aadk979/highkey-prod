@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: Helvetica, Arial, sans-serif; /* Fallback for NeueHaasGrotesk */
+
+  --color-background: #ffffff;
+  --color-foreground: #0d0d0d;
+
+  --color-surface: #f7f5f2;
+  --color-section: #f0ece6;
+  
+  --color-primary: #e8132a;
+  --color-primary-foreground: #ffffff;
+
+  --color-muted: #8c8278;
+  --color-border: #e2ddd8;
+
+  /* Shadcn standard equivalent mappings for compatibility */
+  --color-card: #f7f5f2;
+  --color-card-foreground: #0d0d0d;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0d0d0d;
+  --color-secondary: transparent;
+  --color-secondary-foreground: #e8132a;
+  --color-accent: #f0ece6;
+  --color-accent-foreground: #0d0d0d;
+  --color-destructive: #e8132a;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: #e8132a;
+  --color-input: #e2ddd8;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows described in spec */
+  --shadow-multi: 0 1px 2px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.1);
+  --shadow-hover: 0 2px 4px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.12);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Custom utility for the red stripe under filter toggles */
+.accent-underline {
+  @apply absolute bottom-0 left-0 h-[2px] bg-primary transition-all duration-300;
+}

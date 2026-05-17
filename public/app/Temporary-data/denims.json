@@ -1,0 +1,47 @@
+[
+  {
+    "key": "midnight_blue",
+    "name": "Midnight Blue",
+    "price": 3.5,
+    "currency": "USD",
+    "category": "colors",
+    "free_patches": 5,
+    "measures": { "box_height": 12, "box_length": 5 }
+  },
+  {
+    "key": "sky_blue",
+    "name": "Sky Blue",
+    "price": 3.5,
+    "currency": "USD",
+    "category": "colors",
+    "free_patches": 5,
+    "measures": { "box_height": 12, "box_length": 5 }
+  },
+  {
+    "key": "classic_blue",
+    "name": "Classic Blue",
+    "price": 3.5,
+    "currency": "USD",
+    "category": "colors",
+    "free_patches": 5,
+    "measures": { "box_height": 12, "box_length": 5 }
+  },
+  {
+    "key": "indigo_blue",
+    "name": "Indigo Blue",
+    "price": 3.5,
+    "currency": "USD",
+    "category": "colors",
+    "free_patches": 5,
+    "measures": { "box_height": 12, "box_length": 5 }
+  },
+  {
+    "key": "light_steel_blue",
+    "name": "Light Steel Blue",
+    "price": 3.5,
+    "currency": "USD",
+    "category": "colors",
+    "free_patches": 5,
+    "measures": { "box_height": 12, "box_length": 5 }
+  }
+]

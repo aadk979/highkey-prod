@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* HighKey admin — red on white, adapted from DESIGN.md tokens */
+:root {
+  --canvas: #ffffff;
+  --surface-1: #fafafa;
+  --surface-2: #f4f4f5;
+  --surface-3: #ececee;
+  --surface-4: #e4e4e7;
+  --hairline: #e4e4e7;
+  --hairline-strong: #d4d4d8;
+  --hairline-tertiary: #f4f4f5;
+  --ink: #18181b;
+  --ink-muted: #52525b;
+  --ink-subtle: #71717a;
+  --ink-tertiary: #a1a1aa;
+  --primary: #dc2626;
+  --primary-hover: #b91c1c;
+  --primary-focus: #991b1b;
+  --on-primary: #ffffff;
+  --semantic-success: #16a34a;
+  --semantic-warning: #ca8a04;
+  --semantic-error: #dc2626;
+  --overlay: rgba(24, 24, 27, 0.4);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-success: var(--semantic-success);
+  --color-warning: var(--semantic-warning);
+  --color-error: var(--semantic-error);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.05px;
+}
+
+* {
+  border-color: var(--hairline);
+}

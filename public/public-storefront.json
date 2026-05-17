@@ -1,0 +1,316 @@
+{
+    "id": "public-storefront",
+    "group": "Public Storefront",
+    "endpoints": [
+        {
+            "method": "GET",
+            "path": "/api/v1/products",
+            "description": "List all active products. Supports pagination and optional type filter.",
+            "queryParams": {
+                "page": "number (default: 1)",
+                "limit": "number (default: 20, max: 100)",
+                "type": "base | accessory (optional filter)"
+            },
+            "req": null,
+            "res": {
+                "data": [
+                    {
+                        "id": "uuid",
+                        "name": "string",
+                        "description": "string | null",
+                        "productType": "base | accessory",
+                        "isCustomizable": "boolean",
+                        "basePriceCents": "number",
+                        "currencyCode": "string (e.g. SGD)",
+                        "imageIds": [
+                            "string (resolved to URLs)"
+                        ],
+                        "customisationImageIds": [
+                            "string (resolved to URLs, only for base products)"
+                        ],
+                        "dimensions": "object | null",
+                        "isActive": true,
+                        "availableStock": "number",
+                        "createdAt": "iso-date",
+                        "updatedAt": "iso-date"
+                    }
+                ],
+                "pagination": {
+                    "page": "number",
+                    "limit": "number",
+                    "total": "number",
+                    "totalPages": "number"
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/products/:id",
+            "description": "Get a single product by ID.",
+            "req": null,
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string (resolved to URLs)"
+                ],
+                "dimensions": {
+                    "maxWidthMm": "number",
+                    "maxHeightMm": "number",
+                    "minWidthMm": "number",
+                    "minHeightMm": "number",
+                    "maxPatches": "number"
+                },
+                "isActive": "boolean",
+                "availableStock": "number",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/collection-locations",
+            "description": "List all active collection locations. Returns a flat array (not paginated).",
+            "req": null,
+            "res": [
+                {
+                    "id": "uuid",
+                    "name": "string",
+                    "address": "string",
+                    "postalCode": "string | null",
+                    "instructions": "string | null",
+                    "isActive": true,
+                    "createdAt": "iso-date",
+                    "updatedAt": "iso-date"
+                }
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/checkout/quote",
+            "description": "Get a price quote for a cart. Rate limited to 10 requests/minute.",
+            "req": {
+                "customer": {
+                    "name": "string",
+                    "email": "email",
+                    "countryCode": "+65",
+                    "phone": "phone number"
+                },
+                "customerNote": "string | empty",
+                "promotionId": "uuid | null (optional)",
+                "customizationMeta": {
+                    "canvas_height_mm": "number",
+                    "canvas_width_mm": "number",
+                    "is_customised": "boolean",
+                    "patch_0_id": "accessory UUID",
+                    "patch_0_x": "number",
+                    "patch_0_y": "number",
+                    "patch_1_id": "accessory UUID",
+                    "patch_1_layer": "number",
+                    "patch_1_rot": "number",
+                    "patch_1_x": "number",
+                    "patch_1_y": "number"
+                },
+                "fulfillment": {
+                    "method": "delivery | self collect | roadshow",
+                    "collectionLocationId": "",
+                    "deliveryAddress": "123 sector lane, #22-11, sg, tampanies 123183"
+                },
+                "items": [
+                    {
+                        "productId": "base UUID",
+                        "quantity": "number"
+                    }
+                ]
+            },
+            "res": {
+                "currencyCode": "SGD",
+                "items": [
+                    {
+                        "productId": "uuid",
+                        "name": "string",
+                        "quantity": "number",
+                        "unitPriceCents": "number",
+                        "discountCents": "number",
+                        "lineTotalCents": "number"
+                    }
+                ],
+                "subtotalCents": "number",
+                "discountTotalCents": "number",
+                "taxTotalCents": "number",
+                "shippingTotalCents": "number",
+                "grandTotalCents": "number",
+                "promotion": {
+                    "id": "uuid | null",
+                    "applied": "boolean",
+                    "reason": "string | null"
+                }
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/checkout/session",
+            "description": "Create a Stripe checkout session. Same request body as /checkout/quote. Rate limited to 10 requests/minute.",
+            "req": {
+                "items": [
+                    {
+                        "productId": "uuid (required)",
+                        "quantity": "number (required, 1-99)"
+                    }
+                ],
+                "promotionId": "uuid | null (optional)",
+                "customer": {
+                    "name": "string (required)",
+                    "email": "string (required)",
+                    "countryCode": "string (required)",
+                    "phone": "string (required)"
+                },
+                "fulfillment": {
+                    "method": "self_collect | delivery | road_show (required)",
+                    "collectionLocationId": "uuid | null (optional)",
+                    "deliveryAddress": "string | null (optional)"
+                },
+                "customizationMeta": {
+                    "key": "string | number | boolean"
+                },
+                "customerNote": "string | null (optional, max 1000)"
+            },
+            "res": {
+                "orderId": "uuid",
+                "orderNumber": "number (auto-incremented)",
+                "publicToken": "string",
+                "checkoutUrl": "string (Stripe checkout URL)"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/roadshow/create",
+            "description": "Create a roadshow payment session with QR code. Rate limited to 10 requests/minute.",
+            "req": {
+                "priceCents": "number (required, price in cents)",
+                "location": "string (required)",
+                "description": "string (optional)"
+            },
+            "res": {
+                "checkoutUrl": "string (Stripe checkout URL)",
+                "qrCode": "string (base64 data URL of QR code)",
+                "sessionId": "string (Stripe session ID)"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/orders/:publicToken",
+            "description": "Look up an order by its public token. Rate limited to 30 requests/minute.",
+            "req": null,
+            "res": {
+                "id": "uuid",
+                "orderNumber": "number",
+                "publicToken": "string",
+                "customerName": "string",
+                "customerEmail": "string",
+                "countryCode": "string",
+                "customerPhone": "string",
+                "fulfillmentMethod": "self_collect | delivery",
+                "deliveryAddress": "string | null",
+                "collectionLocationId": "uuid | null",
+                "subtotalCents": "number",
+                "discountTotalCents": "number",
+                "taxTotalCents": "number",
+                "shippingTotalCents": "number",
+                "grandTotalCents": "number",
+                "refundedAmountCents": "number",
+                "currencyCode": "string",
+                "promotionId": "uuid | null",
+                "customizationMeta": "object | null",
+                "orderStatus": "received | preparing | shipped_out | delivered | collection_scheduled | collected | cancelled | refunded | disputed",
+                "paymentStatus": "pending | requires_action | paid | failed | cancelled | partially_refunded | refunded | disputed | disputed_won | disputed_lost",
+                "customerNote": "string | null",
+                "paidAt": "iso-date | null",
+                "cancelledAt": "iso-date | null",
+                "refundedAt": "iso-date | null",
+                "disputeReason": "string | null",
+                "disputeStatus": "string | null",
+                "disputeDueBy": "iso-date | null",
+                "disputedAt": "iso-date | null",
+                "disputeResolvedAt": "iso-date | null",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date",
+                "items": [
+                    {
+                        "id": "uuid",
+                        "orderId": "uuid",
+                        "productId": "uuid | null",
+                        "appliedPromotionId": "uuid | null",
+                        "snapshotName": "string",
+                        "snapshotSlug": "string",
+                        "quantity": "number",
+                        "unitPriceCents": "number",
+                        "discountCents": "number",
+                        "lineTotalCents": "number",
+                        "createdAt": "iso-date",
+                        "product": {
+                            "id": "uuid",
+                            "name": "string",
+                            "description": "string | null",
+                            "productType": "base | accessory",
+                            "isCustomizable": "boolean",
+                            "basePriceCents": "number",
+                            "currencyCode": "string",
+                            "imageIds": [
+                                "string"
+                            ],
+                            "dimensions": "object | null",
+                            "isActive": "boolean",
+                            "availableStock": "number",
+                            "createdAt": "iso-date",
+                            "updatedAt": "iso-date"
+                        }
+                    }
+                ],
+                "collectionLocation": {
+                    "id": "uuid",
+                    "name": "string",
+                    "address": "string",
+                    "postalCode": "string | null",
+                    "instructions": "string | null",
+                    "isActive": "boolean",
+                    "createdAt": "iso-date",
+                    "updatedAt": "iso-date"
+                },
+                "promotion": {
+                    "id": "uuid",
+                    "productId": "uuid | null",
+                    "storeWide": "boolean",
+                    "discountPercentage": "number | null",
+                    "discountValueCents": "number | null",
+                    "startDate": "iso-date",
+                    "endDate": "iso-date",
+                    "trackByPhone": "boolean",
+                    "usageLimit": "number | null",
+                    "isActive": "boolean",
+                    "createdAt": "iso-date",
+                    "updatedAt": "iso-date"
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/products/:id/customisation-templates",
+            "description": "Get all customisation template images for a product. No authentication required.",
+            "req": null,
+            "res": {
+                "images": [
+                    {
+                        "id": "string (image UUID)",
+                        "url": "string (full URL)"
+                    }
+                ]
+            }
+        }
+    ]
+}
