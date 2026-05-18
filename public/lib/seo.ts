@@ -6,9 +6,8 @@ export const SITE_TAGLINE = "Upcycled Denim Keychains";
 export const SITE_LOCALE = "en_SG";
 export const SITE_LANGUAGE = "en-SG";
 
-// Replace NEXT_PUBLIC_SITE_URL with the canonical production origin before launch.
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://highkey.example.com"
+  process.env.NEXT_PUBLIC_SITE_URL || "https://highkeychains.com"
 ).replace(/\/$/, "");
 
 export const SITE_DESCRIPTION =
