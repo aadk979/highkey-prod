@@ -11,21 +11,21 @@ export function Footer() {
           <div className="flex flex-col gap-4 items-center md:items-start text-center md:text-left">
             <Logo className="text-primary h-[32px] w-auto" />
             <p className="text-muted text-sm max-w-[240px] leading-relaxed">
-              Upcycled denim accessories. Cut entirely from discarded jeans.
+              Customizable upcycled denim keychains and accessories cut from discarded jeans.
             </p>
           </div>
           
           {/* Column 2: Shop */}
           <div className="flex flex-col gap-3 items-center md:items-start">
             <span className="font-semibold text-foreground text-sm uppercase tracking-wider mb-2">Shop</span>
-            <Link href="/shop" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">All Products</Link>
-            <Link href="/#how-it-works" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">How it works</Link>
+            <Link href="/shop" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">Upcycled Denim Keychains</Link>
+            <Link href="/#how-it-works" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">Custom Keychain Process</Link>
           </div>
 
           {/* Column 3: Company */}
           <div className="flex flex-col gap-3 items-center md:items-start">
             <span className="font-semibold text-foreground text-sm uppercase tracking-wider mb-2">Company</span>
-            <Link href="/about" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">Our Story</Link>
+            <Link href="/about" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">About Highkey</Link>
             <Link href="/order" className="text-foreground/80 hover:text-primary transition-colors text-sm font-medium">Track Order</Link>
           </div>
         </div>

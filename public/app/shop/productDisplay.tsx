@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { ProductsLoadError } from "./productsLoadError";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowUpRight,
   Image as ImageIcon,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
+import { productPath } from "@/lib/seo";
 import type { Product } from "@/lib/types/storefront";
 
 function ProductCard({
@@ -38,7 +40,7 @@ function ProductCard({
     item.availableStock > 0 && item.availableStock <= 5;
   const outOfStock = item.availableStock <= 0;
 
-  const navigate = () => router.push(`/view?product_id=${item.id}`);
+  const navigate = () => router.push(productPath(item.id));
   const navigateAction = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isBuildable) {
@@ -194,14 +196,16 @@ function ProductCard({
             animate={{ opacity: hovered ? 0 : 1 }}
             className="min-w-0 flex-1 sm:block"
           >
-            <h3
-              className={`font-heading text-foreground font-light leading-tight tracking-tight truncate ${
-                featured ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"
-              }`}
-              title={item.name}
-            >
-              {item.name}
-            </h3>
+            <Link href={productPath(item.id)} className="block hover:text-primary">
+              <h3
+                className={`font-heading text-foreground font-light leading-tight tracking-tight truncate ${
+                  featured ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"
+                }`}
+                title={item.name}
+              >
+                {item.name}
+              </h3>
+            </Link>
             <p className="mt-1 text-primary font-medium text-lg">
               {formatMoney(item.basePriceCents, item.currencyCode)}
             </p>

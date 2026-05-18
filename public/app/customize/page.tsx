@@ -21,6 +21,7 @@ import { getProduct, listProducts, getCustomisationTemplates } from "@/lib/api/s
 import { StorefrontApiError } from "@/lib/api/client";
 import type { Product } from "@/lib/types/storefront";
 import { formatMoney } from "@/lib/format";
+import { productPath } from "@/lib/seo";
 import { cartEngine } from "@/app/utils/cartEngine";
 
 // --- Types ---
@@ -329,7 +330,7 @@ function ProductCanvas({
               >
                 <g 
                   transform={`rotate(${p.rot || 0}, ${p.x}, ${p.y})`}
-                  onPointerDown={(e: any) => handlePointerDown(e, p)}
+                  onPointerDown={(e: React.PointerEvent<SVGGElement>) => handlePointerDown(e, p)}
                 >
                   {/* Invisible hit area to capture pointer events but avoid native image dragging */}
                   <rect
@@ -475,8 +476,10 @@ function CustomizeContent() {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [accessories, setAccessories] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(productId));
+  const [error, setError] = useState<string | null>(
+    productId ? null : "No product ID provided."
+  );
 
   // Dialog & Selection State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -501,8 +504,6 @@ function CustomizeContent() {
 
   useEffect(() => {
     if (!productId) {
-      setError("No product ID provided.");
-      setLoading(false);
       return;
     }
     
@@ -668,7 +669,7 @@ function CustomizeContent() {
         <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
           The customization studio requires a larger screen for the best experience and cannot be loaded on a phone. Please use a desktop or laptop to design your piece.
         </p>
-        <Link href={`/view?product_id=${productId}`}>
+        <Link href={productId ? productPath(productId) : "/shop"}>
           <Button variant="outline" className="rounded-full">
             <ArrowLeft className="mr-2 w-4 h-4" /> Back to product
           </Button>
@@ -680,7 +681,7 @@ function CustomizeContent() {
         {/* Top Header */}
       <header className="relative z-50 h-16 shrink-0 border-b border-border/60 bg-background/85 backdrop-blur-lg flex items-center px-6 justify-between shadow-sm">
         <div className="flex items-center gap-4">
-          <Link href={`/view?product_id=${productId}`} className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/30 transition-colors">
+          <Link href={productId ? productPath(productId) : "/shop"} className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/30 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>

@@ -1,14 +1,33 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
+import React, { useRef } from "react"
 import { motion, useInView } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowDown, Check, Star } from "lucide-react"
+import { ArrowDown } from "lucide-react"
+import { JsonLd } from "@/components/seo/JsonLd"
+import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo"
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
+      <JsonLd
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "@id": absoluteUrl("/#webpage"),
+            name: "Highkey upcycled denim keychains",
+            url: absoluteUrl("/"),
+            description:
+              "Customizable keychains made from reclaimed denim and finished with patches.",
+            isPartOf: {
+              "@id": absoluteUrl("/#website"),
+            },
+          },
+          breadcrumbJsonLd([{ name: "Home", path: "/" }]),
+        ]}
+      />
       {/* Hero Section */}
       <section className="relative min-h-[calc(100vh-80px)] flex flex-col justify-center items-center overflow-hidden pt-12 pb-24 px-6 bg-background text-foreground">
         <div className="absolute inset-0 pointer-events-none opacity-4 mix-blend-multiply" 
@@ -98,7 +117,7 @@ export default function LandingPage() {
                className="w-[70%] aspect-[12/5] rounded-[24px] shadow-hover border-2 border-dashed border-border flex items-center justify-center overflow-hidden -rotate-3"
              >
                <div className="absolute inset-0 bg-opacity-80 bg-[#1d3557] mix-blend-multiply transition-colors duration-500 z-10" />
-               <img src="/example_denim.jpeg" alt="Denim texture" className="absolute inset-0 w-full h-full object-cover grayscale opacity-80" />
+               <img src="/example_denim.jpeg" alt="Close-up texture of reclaimed denim used for Highkey keychains" className="absolute inset-0 w-full h-full object-cover grayscale opacity-80" />
                <span className="relative z-20 font-heading text-white text-xl uppercase tracking-widest mix-blend-overlay">The Canvas</span>
              </motion.div>
              <div className="absolute -bottom-8 flex gap-3 shadow-sm bg-white p-2 border border-border rounded-full">
@@ -111,7 +130,7 @@ export default function LandingPage() {
             <h2 className="font-heading font-light text-[42px] leading-tight text-foreground mb-4">Start with the fabric.</h2>
             <p className="text-muted text-[18px] mb-6">Choose from genuine upcycled denim variants, each with its own character. Your canvas for self-expression, cut directly from reclaimed jeans.</p>
             <Link href="/shop" className="text-primary font-medium hover:underline flex items-center gap-1">
-              See All Denims &rarr;
+              Shop upcycled denim keychains &rarr;
             </Link>
           </div>
         </div>
@@ -136,20 +155,20 @@ export default function LandingPage() {
       <section className="bg-[#0D0D0D] py-32 px-6">
         <div className="max-w-[900px] mx-auto text-center flex flex-col items-center">
           <h2 className="text-white font-heading font-light text-4xl md:text-[70px] leading-[1.1] mb-8">
-            Every keychain starts as someone's forgotten jeans.
+            Every keychain starts as someone&apos;s forgotten jeans.
           </h2>
           <p className="text-[#8C8278] text-[18px] max-w-[600px] mb-16">
-            We don't manufacture fabric. We hunt for it. Each cut is hand-selected from discarded vintage denim, washed, sanitized, and reinforced to outlast the keys it holds.
+            We don&apos;t manufacture fabric. We hunt for it. Each cut is hand-selected from discarded vintage denim, washed, sanitized, and reinforced to outlast the keys it holds.
           </p>
           <div className="grid grid-cols-3 gap-4 w-full mb-16">
             <div className="h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
-               <img src="/example_denim.jpeg" className="w-full h-full object-cover filter brightness-75" />
+               <img src="/example_denim.jpeg" alt="Dark wash reclaimed denim sample for a keychain base" className="w-full h-full object-cover filter brightness-75" />
             </div>
             <div className="h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
-               <img src="/example_denim.jpeg" className="w-full h-full object-cover grayscale contrast-125 brightness-50" />
+               <img src="/example_denim.jpeg" alt="Reclaimed denim fabric variation prepared for hand cutting" className="w-full h-full object-cover grayscale contrast-125 brightness-50" />
             </div>
             <div className="h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
-               <img src="/example_denim.jpeg" className="w-full h-full object-cover filter contrast-[1.1] sepia-[0.2]" />
+               <img src="/example_denim.jpeg" alt="Washed denim texture used in Highkey upcycled accessories" className="w-full h-full object-cover filter contrast-[1.1] sepia-[0.2]" />
             </div>
           </div>
           <div className="w-[80px] h-[1px] bg-primary" />
@@ -160,7 +179,13 @@ export default function LandingPage() {
   )
 }
 
-function StepCard({ step, index }: { step: any, index: number }) {
+type Step = {
+  num: string;
+  title: string;
+  desc: string;
+};
+
+function StepCard({ step, index }: { step: Step, index: number }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   

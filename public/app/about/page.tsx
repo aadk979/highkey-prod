@@ -2,10 +2,32 @@
 
 import React from "react"
 import { motion } from "framer-motion"
+import { JsonLd } from "@/components/seo/JsonLd"
+import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo"
 
 export default function AboutPage() {
   return (
     <div className="flex flex-col min-h-screen">
+      <JsonLd
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            "@id": absoluteUrl("/about#webpage"),
+            name: "About Highkey",
+            url: absoluteUrl("/about"),
+            description:
+              "Highkey turns reclaimed jeans into customizable denim keychains and accessories.",
+            isPartOf: {
+              "@id": absoluteUrl("/#website"),
+            },
+          },
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "About", path: "/about" },
+          ]),
+        ]}
+      />
       
       {/* Hero */}
       <section className="bg-[#0D0D0D] text-white pt-40 pb-32 px-6">
@@ -63,7 +85,7 @@ export default function AboutPage() {
         <div className="max-w-[800px] mx-auto flex flex-col items-center text-center">
           <div className="w-[60px] h-[1px] bg-primary mb-12" />
           <h2 className="font-heading font-light italic text-4xl md:text-[48px] text-foreground leading-tight">
-            "Highkey isn't about making new things. It's about seeing the life still left in old ones."
+            &ldquo;Highkey isn&apos;t about making new things. It&apos;s about seeing the life still left in old ones.&rdquo;
           </h2>
         </div>
       </section>

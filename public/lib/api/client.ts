@@ -18,7 +18,7 @@ export class StorefrontApiError extends Error {
   }
 }
 
-function replaceImageOrigins(obj: any): any {
+function replaceImageOrigins(obj: unknown): unknown {
   if (!obj || typeof obj !== "object") return obj;
   if (typeof window === "undefined") return obj;
 
@@ -26,7 +26,9 @@ function replaceImageOrigins(obj: any): any {
     return obj.map(replaceImageOrigins);
   }
 
-  const newObj: any = { ...obj };
+  const newObj: Record<string, unknown> = {
+    ...(obj as Record<string, unknown>),
+  };
   for (const key in newObj) {
     const val = newObj[key];
     if ((key === "imageIds" || key === "customisationImageIds") && Array.isArray(val)) {

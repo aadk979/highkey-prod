@@ -280,9 +280,15 @@ function ImageGallery({
   );
 }
 
-function ProductViewContent() {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+export function ProductViewContent({
+  productId: productIdProp,
+  initialProduct = null,
+}: {
+  productId?: string;
+  initialProduct?: Product | null;
+}) {
+  const [product, setProduct] = useState<Product | null>(initialProduct);
+  const [loading, setLoading] = useState(!initialProduct);
   const [error, setError] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState(0);
@@ -291,10 +297,16 @@ function ProductViewContent() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const params = useSearchParams();
-  const productId = params.get("product_id");
+  const productId = productIdProp ?? params.get("product_id") ?? undefined;
 
   useEffect(() => {
     async function fetchData() {
+      if (initialProduct && productId === initialProduct.id) {
+        setProduct(initialProduct);
+        setLoading(false);
+        return;
+      }
+
       if (!productId) {
         setError("No product ID provided.");
         setLoading(false);
@@ -316,7 +328,7 @@ function ProductViewContent() {
     }
 
     fetchData();
-  }, [productId]);
+  }, [initialProduct, productId]);
 
   const handleShare = useCallback(async () => {
     try {

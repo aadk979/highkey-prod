@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ShoppingBag } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/Logo"
 import { useCartCount } from "@/hooks/useCartCount"
 
@@ -33,7 +32,7 @@ export function Navbar() {
         
         {/* 1. Brand Logo */}
         <div className="flex justify-start">
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center" aria-label="Highkey home">
             <Logo className="text-primary h-[32px] w-auto relative z-10" />
           </Link>
         </div>
@@ -41,10 +40,10 @@ export function Navbar() {
         {/* 2. Cohesive Text Navigation */}
         <nav className="hidden md:flex justify-center items-center gap-8">
           <Link href="/shop" className="text-[11px] uppercase tracking-[0.2em] font-bold text-foreground hover:text-primary transition-colors">
-            Shop
+            Shop Keychains
           </Link>
           <Link href="/about" className="text-[11px] uppercase tracking-[0.2em] font-bold text-foreground hover:text-primary transition-colors">
-            About
+            About Highkey
           </Link>
           <Link href="/#how-it-works" className="text-[11px] uppercase tracking-[0.2em] font-bold text-foreground hover:text-primary transition-colors">
             Process
@@ -53,7 +52,7 @@ export function Navbar() {
 
         {/* 3. Utility & CTA */}
         <div className="flex justify-end items-center gap-5">
-          <Link href="/cart" className="relative text-foreground hover:text-primary transition-colors delay-75">
+          <Link href="/cart" className="relative text-foreground hover:text-primary transition-colors delay-75" aria-label="View shopping cart">
             <ShoppingBag size={18} strokeWidth={2} />
             {cartCount > 0 && (
               <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">

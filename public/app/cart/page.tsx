@@ -9,6 +9,7 @@ import { ArrowLeft, Trash2, Plus, Minus, Package, Tag, X } from "lucide-react";
 import { cartEngine, CartItem } from "@/app/utils/cartEngine";
 import { getProduct, listPromotions } from "@/lib/api/storefront";
 import { formatMoney } from "@/lib/format";
+import { productPath } from "@/lib/seo";
 import type { Product, PublicPromotion } from "@/lib/types/storefront";
 
 export default function CartPage() {
@@ -52,7 +53,7 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
-    loadCart();
+    void Promise.resolve().then(loadCart);
     window.addEventListener("highkey:cart-updated", loadCart);
     return () => window.removeEventListener("highkey:cart-updated", loadCart);
   }, [loadCart]);
@@ -245,7 +246,7 @@ export default function CartPage() {
                             </Link>
                           ) : (
                             <Link
-                              href={`/view?product_id=${product.id}`}
+                              href={productPath(product.id)}
                               className="text-sm font-medium text-primary hover:underline underline-offset-4"
                             >
                               View piece &rarr;
