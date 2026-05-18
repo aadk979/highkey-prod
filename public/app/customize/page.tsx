@@ -14,6 +14,7 @@ import {
   X,
   Check,
   Search,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getProduct, listProducts, getCustomisationTemplates } from "@/lib/api/storefront";
@@ -658,9 +659,25 @@ function CustomizeContent() {
   const maxPatchesLimit = Math.min(product.dimensions?.maxPatches ?? 25, 25);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100dvh-5rem)] bg-background flex flex-col overflow-hidden">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100dvh-5rem)] bg-background flex flex-col overflow-hidden relative">
       
-      {/* Top Header */}
+      {/* Mobile Fallback UI */}
+      <div className="flex md:hidden flex-col items-center justify-center h-full w-full p-8 text-center absolute inset-0 z-50 bg-background">
+        <Monitor className="w-16 h-16 text-muted mb-6" />
+        <h2 className="text-2xl font-heading font-medium mb-3">Desktop Recommended</h2>
+        <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
+          The customization studio requires a larger screen for the best experience and cannot be loaded on a phone. Please use a desktop or laptop to design your piece.
+        </p>
+        <Link href={`/view?product_id=${productId}`}>
+          <Button variant="outline" className="rounded-full">
+            <ArrowLeft className="mr-2 w-4 h-4" /> Back to product
+          </Button>
+        </Link>
+      </div>
+
+      {/* Desktop UI */}
+      <div className="hidden md:flex flex-col h-full w-full overflow-hidden">
+        {/* Top Header */}
       <header className="relative z-50 h-16 shrink-0 border-b border-border/60 bg-background/85 backdrop-blur-lg flex items-center px-6 justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <Link href={`/view?product_id=${productId}`} className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/30 transition-colors">
@@ -884,6 +901,7 @@ function CustomizeContent() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </motion.div>
   );
 }
