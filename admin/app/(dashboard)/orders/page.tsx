@@ -23,7 +23,7 @@ import { PaginationBar } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
 import { ordersApi } from "@/lib/api/orders";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
-import { formatCents, formatDate, formatLabel } from "@/lib/utils";
+import { formatCents, formatDate } from "@/lib/utils";
 import type { OrderStatus, PaymentStatus } from "@/lib/types/order";
 
 export default function OrdersPage() {
@@ -104,39 +104,14 @@ export default function OrdersPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  {/* ── existing columns ── */}
                   <Th>#</Th>
                   <Th>Customer</Th>
+                  <Th>Fulfillment</Th>
                   <Th>Total</Th>
                   <Th>Order</Th>
                   <Th>Payment</Th>
-                  <Th>Date</Th>
-                  {/* ── new columns ── */}
-                  <Th>ID</Th>
-                  <Th>Public Token</Th>
-                  <Th>Country</Th>
-                  <Th>Phone</Th>
-                  <Th>Fulfillment</Th>
-                  <Th>Delivery Address</Th>
-                  <Th>Collection Loc ID</Th>
-                  <Th>Subtotal</Th>
-                  <Th>Discount</Th>
-                  <Th>Tax</Th>
-                  <Th>Shipping</Th>
-                  <Th>Refunded</Th>
-                  <Th>Currency</Th>
-                  <Th>Promotion ID</Th>
-                  <Th>Customization</Th>
-                  <Th>Customer Note</Th>
                   <Th>Paid At</Th>
-                  <Th>Cancelled At</Th>
-                  <Th>Refunded At</Th>
-                  <Th>Dispute Reason</Th>
-                  <Th>Dispute Status</Th>
-                  <Th>Dispute Due By</Th>
-                  <Th>Disputed At</Th>
-                  <Th>Dispute Resolved</Th>
-                  <Th>Updated At</Th>
+                  <Th>Created</Th>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -145,17 +120,26 @@ export default function OrdersPage() {
                     key={order.id}
                     onClick={() => router.push(`/orders/${order.id}`)}
                   >
-                    {/* ── existing cells ── */}
                     <Td className="font-medium text-ink">
                       #{order.orderNumber}
                     </Td>
                     <Td>
-                      <div className="text-ink">{order.customerName}</div>
-                      <div className="text-xs text-ink-subtle">
+                      <p className="font-medium text-ink">
+                        {order.customerName}
+                      </p>
+                      <p className="text-xs text-ink-subtle">
                         {order.customerEmail}
-                      </div>
+                      </p>
+                      <p className="text-xs text-ink-subtle">
+                        {order.customerPhone}
+                      </p>
                     </Td>
-                    <Td>
+                    <Td className="capitalize text-ink">
+                      {order.fulfillmentMethod === "self_collect"
+                        ? "Self-collect"
+                        : "Delivery"}
+                    </Td>
+                    <Td className="font-medium text-ink">
                       {formatCents(order.grandTotalCents, order.currencyCode)}
                     </Td>
                     <Td>
@@ -164,69 +148,8 @@ export default function OrdersPage() {
                     <Td>
                       <PaymentStatusBadge status={order.paymentStatus} />
                     </Td>
-                    <Td>{formatDate(order.createdAt)}</Td>
-
-                    {/* ── new cells ── */}
-                    <Td>
-                      <span className="font-mono text-xs">
-                        {order.id.slice(0, 8)}&hellip;
-                      </span>
-                    </Td>
-                    <Td>
-                      <span className="font-mono text-xs">
-                        {order.publicToken}
-                      </span>
-                    </Td>
-                    <Td>{order.countryCode}</Td>
-                    <Td>{order.customerPhone}</Td>
-                    <Td>{formatLabel(order.fulfillmentMethod)}</Td>
-                    <Td>{order.deliveryAddress ?? "null"}</Td>
-                    <Td>
-                      <span className="font-mono text-xs">
-                        {order.collectionLocationId ?? "null"}
-                      </span>
-                    </Td>
-                    <Td>
-                      {formatCents(order.subtotalCents, order.currencyCode)}
-                    </Td>
-                    <Td>
-                      {formatCents(
-                        order.discountTotalCents,
-                        order.currencyCode,
-                      )}
-                    </Td>
-                    <Td>
-                      {formatCents(order.taxTotalCents, order.currencyCode)}
-                    </Td>
-                    <Td>
-                      {formatCents(
-                        order.shippingTotalCents,
-                        order.currencyCode,
-                      )}
-                    </Td>
-                    <Td>
-                      {formatCents(
-                        order.refundedAmountCents,
-                        order.currencyCode,
-                      )}
-                    </Td>
-                    <Td>{order.currencyCode}</Td>
-                    <Td>
-                      <span className="font-mono text-xs">
-                        {order.promotionId ?? "null"}
-                      </span>
-                    </Td>
-                    <Td>{order.customizationMeta ? "Yes" : "null"}</Td>
-                    <Td>{order.customerNote ?? "null"}</Td>
                     <Td>{formatDate(order.paidAt)}</Td>
-                    <Td>{formatDate(order.cancelledAt)}</Td>
-                    <Td>{formatDate(order.refundedAt)}</Td>
-                    <Td>{order.disputeReason ?? "null"}</Td>
-                    <Td>{order.disputeStatus ?? "null"}</Td>
-                    <Td>{formatDate(order.disputeDueBy)}</Td>
-                    <Td>{formatDate(order.disputedAt)}</Td>
-                    <Td>{formatDate(order.disputeResolvedAt)}</Td>
-                    <Td>{formatDate(order.updatedAt)}</Td>
+                    <Td>{formatDate(order.createdAt)}</Td>
                   </TableRow>
                 ))}
               </TableBody>

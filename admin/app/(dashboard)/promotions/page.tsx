@@ -1,7 +1,15 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Plus, Percent, DollarSign, Globe, Package } from "lucide-react";
+import { Fragment, useCallback, useState } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Percent,
+  DollarSign,
+  Globe,
+  Package,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ActiveBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +47,7 @@ const EMPTY_FORM = {
 };
 
 export default function PromotionsPage() {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -151,67 +160,123 @@ export default function PromotionsPage() {
             <Table>
               <TableHead>
                 <TableRow>
+                  <Th className="w-10" />
                   <Th>Scope</Th>
                   <Th>Discount</Th>
                   <Th>Period</Th>
-                  <Th>Usage limit</Th>
+                  <Th>Usage Limit</Th>
                   <Th>Status</Th>
-                  <Th>ID</Th>
-                  <Th>Product ID</Th>
-                  <Th>Track by Phone</Th>
-                  <Th>Created</Th>
-                  <Th>Updated</Th>
                   <Th>Actions</Th>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.map((promo) => (
-                  <TableRow key={promo.id}>
-                    <Td className="text-ink">
-                      {promo.storeWide
-                        ? "Store-wide"
-                        : (promo.product?.name ?? promo.productId ?? "Product")}
-                    </Td>
-                    <Td>
-                      {promo.discountPercentage != null
-                        ? `${promo.discountPercentage}%`
-                        : promo.discountValueCents != null
-                          ? `$${(promo.discountValueCents / 100).toFixed(2)} off`
-                          : "—"}
-                    </Td>
-                    <Td className="text-xs">
-                      {formatDate(promo.startDate)} –{" "}
-                      {formatDate(promo.endDate)}
-                    </Td>
-                    <Td className="text-xs text-ink-muted">
-                      {promo.usageLimit ?? "Unlimited"}
-                    </Td>
-                    <Td>
-                      <ActiveBadge active={promo.isActive} />
-                    </Td>
-                    <Td>
-                      <span className="font-mono text-xs" title={promo.id}>
-                        {promo.id.slice(0, 8)}&hellip;
-                      </span>
-                    </Td>
-                    <Td>
-                      <span className="font-mono text-xs">
-                        {promo.productId ?? "null"}
-                      </span>
-                    </Td>
-                    <Td>{promo.trackByPhone ? "Yes" : "No"}</Td>
-                    <Td>{formatDate(promo.createdAt)}</Td>
-                    <Td>{formatDate(promo.updatedAt)}</Td>
-                    <Td>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleActive(promo.id, promo.isActive)}
-                      >
-                        {promo.isActive ? "Deactivate" : "Activate"}
-                      </Button>
-                    </Td>
-                  </TableRow>
+                  <Fragment key={promo.id}>
+                    <TableRow
+                      onClick={() =>
+                        setExpandedId(expandedId === promo.id ? null : promo.id)
+                      }
+                    >
+                      <td className="w-10 px-3 py-4 text-ink-subtle">
+                        {expandedId === promo.id ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronRight className="size-4" />
+                        )}
+                      </td>
+                      <Td className="text-ink">
+                        {promo.storeWide
+                          ? "Store-wide"
+                          : (promo.product?.name ??
+                            promo.productId ??
+                            "Product")}
+                      </Td>
+                      <Td>
+                        {promo.discountPercentage != null
+                          ? `${promo.discountPercentage}%`
+                          : promo.discountValueCents != null
+                            ? `$${(promo.discountValueCents / 100).toFixed(2)} off`
+                            : "—"}
+                      </Td>
+                      <Td className="text-xs">
+                        {formatDate(promo.startDate)} –{" "}
+                        {formatDate(promo.endDate)}
+                      </Td>
+                      <Td className="text-xs text-ink-muted">
+                        {promo.usageLimit ?? "Unlimited"}
+                      </Td>
+                      <Td>
+                        <ActiveBadge active={promo.isActive} />
+                      </Td>
+                      <Td>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleActive(promo.id, promo.isActive);
+                          }}
+                        >
+                          {promo.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+                      </Td>
+                    </TableRow>
+
+                    {expandedId === promo.id && (
+                      <tr className="border-b border-hairline bg-surface-1">
+                        <td colSpan={7} className="px-6 pb-6 pt-3">
+                          <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                ID
+                              </p>
+                              <p className="break-all font-mono text-xs text-ink">
+                                {promo.id}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Product ID
+                              </p>
+                              {promo.productId ? (
+                                <p className="break-all font-mono text-xs text-ink">
+                                  {promo.productId}
+                                </p>
+                              ) : (
+                                <p className="text-sm italic text-ink-muted">
+                                  null
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Track by Phone
+                              </p>
+                              <p className="text-sm text-ink">
+                                {promo.trackByPhone ? "Yes" : "No"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Created At
+                              </p>
+                              <p className="text-sm text-ink">
+                                {formatDate(promo.createdAt)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Updated At
+                              </p>
+                              <p className="text-sm text-ink">
+                                {formatDate(promo.updatedAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

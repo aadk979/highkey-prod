@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Plus } from "lucide-react";
+import { Fragment, useCallback, useState } from "react";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ActiveBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { formatDate } from "@/lib/utils";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
 
 export default function LocationsPage() {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -91,51 +92,94 @@ export default function LocationsPage() {
             <Table>
               <TableHead>
                 <TableRow>
+                  <Th className="w-10" />
                   <Th>Name</Th>
                   <Th>Address</Th>
-                  <Th>Status</Th>
-                  <Th>ID</Th>
                   <Th>Postal Code</Th>
-                  <Th>Instructions</Th>
-                  <Th>Created</Th>
-                  <Th>Updated</Th>
+                  <Th>Status</Th>
                   <Th>Actions</Th>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.map((loc) => (
-                  <TableRow key={loc.id}>
-                    <Td className="font-medium text-ink">{loc.name}</Td>
-                    <Td>{loc.address}</Td>
-                    <Td>
-                      <ActiveBadge active={loc.isActive} />
-                    </Td>
-                    <Td>
-                      <span className="font-mono text-xs" title={loc.id}>
-                        {loc.id.slice(0, 8)}&hellip;
-                      </span>
-                    </Td>
-                    <Td>{loc.postalCode ?? "null"}</Td>
-                    <Td>
-                      <span
-                        className="block max-w-[200px] truncate"
-                        title={loc.instructions ?? "null"}
-                      >
-                        {loc.instructions ?? "null"}
-                      </span>
-                    </Td>
-                    <Td>{formatDate(loc.createdAt)}</Td>
-                    <Td>{formatDate(loc.updatedAt)}</Td>
-                    <Td>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleActive(loc.id, loc.isActive)}
-                      >
-                        {loc.isActive ? "Deactivate" : "Activate"}
-                      </Button>
-                    </Td>
-                  </TableRow>
+                  <Fragment key={loc.id}>
+                    <TableRow
+                      onClick={() =>
+                        setExpandedId(expandedId === loc.id ? null : loc.id)
+                      }
+                    >
+                      <td className="w-10 px-3 py-4 text-ink-subtle">
+                        {expandedId === loc.id ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronRight className="size-4" />
+                        )}
+                      </td>
+                      <Td className="font-medium text-ink">{loc.name}</Td>
+                      <Td>{loc.address}</Td>
+                      <Td>{loc.postalCode ?? "—"}</Td>
+                      <Td>
+                        <ActiveBadge active={loc.isActive} />
+                      </Td>
+                      <Td>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleActive(loc.id, loc.isActive);
+                          }}
+                        >
+                          {loc.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+                      </Td>
+                    </TableRow>
+
+                    {expandedId === loc.id && (
+                      <tr className="border-b border-hairline bg-surface-1">
+                        <td colSpan={6} className="px-6 pb-6 pt-3">
+                          <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                ID
+                              </p>
+                              <p className="break-all font-mono text-xs text-ink">
+                                {loc.id}
+                              </p>
+                            </div>
+                            <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Instructions
+                              </p>
+                              <p className="text-sm text-ink">
+                                {loc.instructions ?? (
+                                  <span className="italic text-ink-muted">
+                                    null
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Created At
+                              </p>
+                              <p className="text-sm text-ink">
+                                {formatDate(loc.createdAt)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+                                Updated At
+                              </p>
+                              <p className="text-sm text-ink">
+                                {formatDate(loc.updatedAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

@@ -9,6 +9,25 @@ import { financeApi } from "@/lib/api/finance";
 import { formatCents, formatDate } from "@/lib/utils";
 import type { FinancePayment } from "@/lib/types/finance";
 
+function field(label: string, value: React.ReactNode, mono = false) {
+  return (
+    <div>
+      <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+        {label}
+      </p>
+      {value === null || value === undefined ? (
+        <p className="text-sm italic text-ink-muted">null</p>
+      ) : mono ? (
+        <p className="break-all font-mono text-xs text-ink">
+          {value as string}
+        </p>
+      ) : (
+        <p className="text-sm text-ink">{value}</p>
+      )}
+    </div>
+  );
+}
+
 export default function FinancePaymentsPage() {
   const fetcher = useCallback(
     (params: { page: number; limit: number }) => financeApi.payments(params),
@@ -19,7 +38,35 @@ export default function FinancePaymentsPage() {
     <FinanceTablePage<FinancePayment>
       title="Payments"
       fetcher={fetcher}
-      orderLink={(row) => `/orders/${row.orderId}`}
+      expandRow={(row) => (
+        <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
+          {field("ID", row.id, true)}
+          {field("Provider", row.provider)}
+          {field(
+            "Amount Received",
+            formatCents(row.amountReceivedCents, row.currencyCode),
+          )}
+          {field(
+            "Amount Refunded",
+            formatCents(row.amountRefundedCents, row.currencyCode),
+          )}
+          {field("Stripe Checkout Session", row.stripeCheckoutSessionId, true)}
+          {field("Stripe Payment Intent", row.stripePaymentIntentId, true)}
+          {field("Stripe Charge ID", row.stripeChargeId, true)}
+          {field("Stripe Customer ID", row.stripeCustomerId, true)}
+          {field("Checkout Completed", formatDate(row.checkoutCompletedAt))}
+          {field("Cancelled At", formatDate(row.cancelledAt))}
+          {field("Failed At", formatDate(row.failedAt))}
+          {field("Created At", formatDate(row.createdAt))}
+          {field("Updated At", formatDate(row.updatedAt))}
+          <div className="col-span-full">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Raw Last Payload
+            </p>
+            <JsonViewer value={row.rawLastPayload} />
+          </div>
+        </div>
+      )}
       columns={[
         {
           header: "Order",
@@ -31,7 +78,16 @@ export default function FinancePaymentsPage() {
         },
         {
           header: "Customer",
-          cell: (row) => row.order?.customerName ?? "—",
+          cell: (row) => (
+            <div>
+              <p className="text-sm text-ink">
+                {row.order?.customerName ?? "—"}
+              </p>
+              <p className="text-xs text-ink-subtle">
+                {row.order?.customerEmail ?? "—"}
+              </p>
+            </div>
+          ),
         },
         {
           header: "Amount",
@@ -42,20 +98,6 @@ export default function FinancePaymentsPage() {
           cell: (row) => <PaymentStatusBadge status={row.status} />,
         },
         {
-          header: "Paid",
-          cell: (row) => formatDate(row.paidAt),
-        },
-        {
-          header: "ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">{row.id}</span>
-          ),
-        },
-        {
-          header: "Provider",
-          cell: (row) => row.provider,
-        },
-        {
           header: "Mode",
           cell: (row) => (
             <Badge variant={row.mode === "live" ? "success" : "warning"}>
@@ -64,68 +106,8 @@ export default function FinancePaymentsPage() {
           ),
         },
         {
-          header: "Amt Received",
-          cell: (row) => formatCents(row.amountReceivedCents, row.currencyCode),
-        },
-        {
-          header: "Amt Refunded",
-          cell: (row) => formatCents(row.amountRefundedCents, row.currencyCode),
-        },
-        {
-          header: "Stripe Checkout Session",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.stripeCheckoutSessionId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Stripe Payment Intent",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.stripePaymentIntentId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Stripe Charge",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.stripeChargeId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Stripe Customer",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.stripeCustomerId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Checkout Completed",
-          cell: (row) => formatDate(row.checkoutCompletedAt),
-        },
-        {
-          header: "Cancelled At",
-          cell: (row) => formatDate(row.cancelledAt),
-        },
-        {
-          header: "Failed At",
-          cell: (row) => formatDate(row.failedAt),
-        },
-        {
-          header: "Created At",
-          cell: (row) => formatDate(row.createdAt),
-        },
-        {
-          header: "Updated At",
-          cell: (row) => formatDate(row.updatedAt),
-        },
-        {
-          header: "Raw Payload",
-          cell: (row) => <JsonViewer value={row.rawLastPayload} />,
+          header: "Paid At",
+          cell: (row) => formatDate(row.paidAt),
         },
       ]}
     />

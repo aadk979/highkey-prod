@@ -23,7 +23,7 @@ import { Select } from "@/components/ui/select";
 import { ProductForm } from "@/components/products/product-form";
 import { productsApi } from "@/lib/api/products";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
-import { formatCents, formatDate } from "@/lib/utils";
+import { formatCents } from "@/lib/utils";
 import type { ProductType } from "@/lib/types/product";
 
 export default function ProductsPage() {
@@ -40,7 +40,7 @@ export default function ProductsPage() {
     [typeFilter],
   );
 
-  const { data, pagination, page, setPage, loading, error, reload } =
+  const { data, pagination, setPage, loading, error, reload } =
     usePaginatedFetch(fetcher, [typeFilter]);
 
   return (
@@ -90,14 +90,8 @@ export default function ProductsPage() {
                   <Th>Type</Th>
                   <Th>Price</Th>
                   <Th>Stock</Th>
-                  <Th>Status</Th>
-                  <Th>ID</Th>
-                  <Th>Description</Th>
                   <Th>Customizable</Th>
-                  <Th>Currency</Th>
-                  <Th>Images</Th>
-                  <Th>Dimensions</Th>
-                  <Th>Created</Th>
+                  <Th>Status</Th>
                   <Th>Updated</Th>
                 </TableRow>
               </TableHead>
@@ -107,41 +101,35 @@ export default function ProductsPage() {
                     key={product.id}
                     onClick={() => router.push(`/products/${product.id}`)}
                   >
-                    <Td className="font-medium text-ink">{product.name}</Td>
-                    <Td className="capitalize">{product.productType}</Td>
                     <Td>
+                      <p className="font-medium text-ink">{product.name}</p>
+                      {product.description ? (
+                        <p className="mt-0.5 max-w-xs text-xs text-ink-subtle line-clamp-1">
+                          {product.description}
+                        </p>
+                      ) : null}
+                    </Td>
+                    <Td className="capitalize text-ink">
+                      {product.productType}
+                    </Td>
+                    <Td className="font-medium text-ink">
                       {formatCents(
                         product.basePriceCents,
                         product.currencyCode,
                       )}
                     </Td>
-                    <Td>{product.availableStock}</Td>
+                    <Td className="text-ink">{product.availableStock}</Td>
+                    <Td>{product.isCustomizable ? "Yes" : "No"}</Td>
                     <Td>
                       <ActiveBadge active={product.isActive} />
                     </Td>
                     <Td>
-                      <span className="font-mono text-xs" title={product.id}>
-                        {product.id.slice(0, 8)}&hellip;
-                      </span>
+                      {new Date(product.updatedAt).toLocaleDateString("en-SG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </Td>
-                    <Td>
-                      <span
-                        className="block max-w-[200px] truncate"
-                        title={product.description ?? "null"}
-                      >
-                        {product.description ?? "null"}
-                      </span>
-                    </Td>
-                    <Td>{product.isCustomizable ? "Yes" : "No"}</Td>
-                    <Td>{product.currencyCode}</Td>
-                    <Td>{product.imageIds.length}</Td>
-                    <Td>
-                      {product.dimensions != null
-                        ? `${product.dimensions.maxWidthMm ?? "?"}\u00d7${product.dimensions.maxHeightMm ?? "?"} mm`
-                        : "null"}
-                    </Td>
-                    <Td>{formatDate(product.createdAt)}</Td>
-                    <Td>{formatDate(product.updatedAt)}</Td>
                   </TableRow>
                 ))}
               </TableBody>

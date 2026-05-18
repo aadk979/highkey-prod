@@ -1,23 +1,38 @@
 import { cn } from "@/lib/utils";
 
-export function Table({ children, className }: { children: React.ReactNode; className?: string }) {
+export function Table({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("overflow-x-auto rounded-lg border border-hairline", className)}>
-      <table className="w-full min-w-[640px] text-left text-sm">{children}</table>
+    <div
+      className={cn(
+        "overflow-x-auto rounded-lg border border-hairline",
+        className,
+      )}
+    >
+      <table className="w-full min-w-[640px] text-left text-sm">
+        {children}
+      </table>
     </div>
   );
 }
 
 export function TableHead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="border-b border-hairline bg-surface-1 text-xs font-medium uppercase tracking-wide text-ink-subtle">
+    <thead className="border-b border-hairline bg-surface-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
       {children}
     </thead>
   );
 }
 
 export function TableBody({ children }: { children: React.ReactNode }) {
-  return <tbody className="divide-y divide-hairline bg-canvas">{children}</tbody>;
+  return (
+    <tbody className="divide-y divide-hairline bg-canvas">{children}</tbody>
+  );
 }
 
 export function TableRow({
@@ -43,12 +58,30 @@ export function TableRow({
   );
 }
 
-export function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("px-4 py-3", className)}>{children}</th>;
+export function Th({
+  children,
+  className,
+}: {
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <th className={cn("px-5 py-3.5 whitespace-nowrap", className)}>
+      {children}
+    </th>
+  );
 }
 
-export function Td({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <td className={cn("px-4 py-3 text-ink-muted", className)}>{children}</td>;
+export function Td({
+  children,
+  className,
+}: {
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <td className={cn("px-5 py-4 text-ink-muted", className)}>{children}</td>
+  );
 }
 
 export function EmptyState({

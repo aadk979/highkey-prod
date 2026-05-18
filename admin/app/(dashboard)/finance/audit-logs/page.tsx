@@ -8,6 +8,25 @@ import { financeApi } from "@/lib/api/finance";
 import { formatDate, formatLabel } from "@/lib/utils";
 import type { AuditLog } from "@/lib/types/finance";
 
+function field(label: string, value: React.ReactNode, mono = false) {
+  return (
+    <div>
+      <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+        {label}
+      </p>
+      {value === null || value === undefined ? (
+        <p className="text-sm italic text-ink-muted">null</p>
+      ) : mono ? (
+        <p className="break-all font-mono text-xs text-ink">
+          {value as string}
+        </p>
+      ) : (
+        <p className="text-sm text-ink">{value}</p>
+      )}
+    </div>
+  );
+}
+
 export default function FinanceAuditLogsPage() {
   const fetcher = useCallback(
     (params: { page: number; limit: number }) => financeApi.auditLogs(params),
@@ -18,7 +37,40 @@ export default function FinanceAuditLogsPage() {
     <FinanceTablePage<AuditLog>
       title="Audit logs"
       fetcher={fetcher}
-      orderLink={(row) => (row.orderId ? `/orders/${row.orderId}` : null)}
+      expandRow={(row) => (
+        <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
+          {field("ID", row.id, true)}
+          {field("Account ID", row.accountId, true)}
+          {field("Stripe Event Record ID", row.stripeEventRecordId, true)}
+          {field("Source", row.source)}
+          {field("Entity Type", row.entityType)}
+          {field("Entity ID", row.entityId, true)}
+          {field("Order ID", row.orderId, true)}
+          {field("Request ID", row.requestId, true)}
+          {field("Correlation ID", row.correlationId, true)}
+          {field("IP Address", row.ipAddress)}
+          {field("User Agent", row.userAgent)}
+          {field("Created At", formatDate(row.createdAt))}
+          <div className="col-span-full">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Before Data
+            </p>
+            <JsonViewer value={row.beforeData} />
+          </div>
+          <div className="col-span-full">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+              After Data
+            </p>
+            <JsonViewer value={row.afterData} />
+          </div>
+          <div className="col-span-full">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Metadata
+            </p>
+            <JsonViewer value={row.metadata} />
+          </div>
+        </div>
+      )}
       columns={[
         {
           header: "When",
@@ -36,9 +88,7 @@ export default function FinanceAuditLogsPage() {
         },
         {
           header: "Summary",
-          cell: (row) => (
-            <span className="max-w-xs truncate">{row.summary}</span>
-          ),
+          cell: (row) => row.summary,
         },
         {
           header: "OK",
@@ -47,99 +97,6 @@ export default function FinanceAuditLogsPage() {
               {row.success ? "Yes" : "No"}
             </Badge>
           ),
-        },
-        {
-          header: "ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">{row.id}</span>
-          ),
-        },
-        {
-          header: "Account ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.accountId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Stripe Event Record",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.stripeEventRecordId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Source",
-          cell: (row) => row.source,
-        },
-        {
-          header: "Entity Type",
-          cell: (row) => row.entityType,
-        },
-        {
-          header: "Entity ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.entityId}
-            </span>
-          ),
-        },
-        {
-          header: "Order ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.orderId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Request ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.requestId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Correlation ID",
-          cell: (row) => (
-            <span className="font-mono text-xs text-ink-muted">
-              {row.correlationId ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "IP",
-          cell: (row) => row.ipAddress ?? "null",
-        },
-        {
-          header: "User Agent",
-          cell: (row) => (
-            <span
-              className="max-w-xs truncate block"
-              title={row.userAgent ?? undefined}
-            >
-              {row.userAgent ?? "null"}
-            </span>
-          ),
-        },
-        {
-          header: "Created At",
-          cell: (row) => formatDate(row.createdAt),
-        },
-        {
-          header: "Before",
-          cell: (row) => <JsonViewer value={row.beforeData} />,
-        },
-        {
-          header: "After",
-          cell: (row) => <JsonViewer value={row.afterData} />,
-        },
-        {
-          header: "Metadata",
-          cell: (row) => <JsonViewer value={row.metadata} />,
         },
       ]}
     />
