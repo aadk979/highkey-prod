@@ -119,7 +119,7 @@ function StatusTimeline({ order }: { order: Order }) {
         const done = i <= currentIdx;
         const active = i === currentIdx;
         return (
-          <div key={step.key} className="flex sm:flex-1 items-center gap-2 sm:flex-col sm:gap-2 min-w-0">
+          <div key={step.key} className="flex sm:flex-1 items-center gap-2 sm:flex-col sm:gap-2 min-w-0 shrink-0">
             <motion.div
               initial={false}
               animate={{
@@ -325,7 +325,7 @@ export function OrderDetails({ order }: { order: Order }) {
               {order.fulfillmentMethod === "delivery" && order.deliveryAddress ? (
                 <div className="flex gap-2 text-sm text-muted">
                   <MapPin size={16} className="shrink-0 text-primary mt-0.5" />
-                  <p className="whitespace-pre-line leading-relaxed">
+                  <p className="whitespace-pre-line leading-relaxed break-words break-all sm:break-normal">
                     {order.deliveryAddress}
                   </p>
                 </div>

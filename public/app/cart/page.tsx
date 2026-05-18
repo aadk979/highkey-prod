@@ -210,8 +210,8 @@ export default function CartPage() {
                           </p>
                         </div>
 
-                        <div className="mt-6 flex justify-between items-end">
-                          <div className="flex items-center gap-6">
+                        <div className="mt-6 flex flex-col sm:flex-row sm:justify-between items-start sm:items-end gap-4">
+                          <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6 w-full sm:w-auto">
                             <div className="flex items-center gap-4 bg-secondary/20 border border-border/60 rounded-full px-4 py-1.5">
                               <button
                                 onClick={() => handleUpdateQuantity(item.cart_item_id, item.quantity - 1)}
@@ -264,19 +264,19 @@ export default function CartPage() {
                             const childProduct = products[child.product_id];
                             if (!childProduct) return null;
                             return (
-                              <div key={child.cart_item_id} className="flex justify-between items-center bg-secondary/10 px-4 py-2 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-white rounded-md border border-border/50 flex items-center justify-center p-1">
+                              <div key={child.cart_item_id} className="flex justify-between items-center bg-secondary/10 px-4 py-2 rounded-xl gap-2">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-8 h-8 shrink-0 bg-white rounded-md border border-border/50 flex items-center justify-center p-1">
                                     {childProduct.imageIds?.[0] ? (
                                       <Image src={childProduct.imageIds[0]} alt="" width={32} height={32} className="object-contain" unoptimized />
                                     ) : (
                                       <Package className="w-4 h-4 text-muted" />
                                     )}
                                   </div>
-                                  <span className="text-sm font-medium">{childProduct.name}</span>
-                                  <span className="text-xs text-muted">x{child.quantity}</span>
+                                  <span className="text-sm font-medium truncate">{childProduct.name}</span>
+                                  <span className="text-xs text-muted shrink-0">x{child.quantity}</span>
                                 </div>
-                                <span className="text-sm font-medium">
+                                <span className="text-sm font-medium shrink-0">
                                   {formatMoney(childProduct.basePriceCents * child.quantity, childProduct.currencyCode)}
                                 </span>
                               </div>

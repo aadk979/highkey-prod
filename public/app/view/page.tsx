@@ -391,7 +391,7 @@ function ProductViewContent() {
     <Button
       size="lg"
       variant={isBuildable ? "outline" : "default"}
-      className="flex-1 w-full rounded-full h-14 text-base font-semibold transition-all duration-300"
+      className="flex-1 w-full min-w-0 rounded-full h-14 text-sm sm:text-base font-semibold transition-all duration-300 px-2 sm:px-4"
       disabled={!inStock || isAddingToCart}
       onClick={handleAddToCart}
     >
@@ -415,12 +415,14 @@ function ProductViewContent() {
             exit={{ opacity: 0, y: -10 }}
             className="flex items-center justify-center gap-2"
           >
-            <ShoppingBag className="w-5 h-5" />
+            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <span className="truncate">
             {isAddingToCart
               ? "Adding..."
               : inStock
                 ? "Add to bag"
                 : "Sold out"}
+            </span>
           </motion.span>
         )}
       </AnimatePresence>
@@ -432,13 +434,13 @@ function ProductViewContent() {
     {isBuildable ? (
       <>
         {addToBagButton}
-        <Link href={`/customize?product_id=${product.id}`} className="flex-1 w-full">
+        <Link href={`/customize?product_id=${product.id}`} className="flex-1 w-full min-w-0">
           <Button
             size="lg"
-            className="w-full rounded-full h-14 text-base font-semibold shadow-multi group"
+            className="w-full rounded-full h-14 text-sm sm:text-base font-semibold shadow-multi group px-2 sm:px-4"
           >
-            <Wand2 className="mr-2 w-5 h-5 transition-transform group-hover:rotate-12" />
-            Customize
+            <Wand2 className="mr-1.5 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:rotate-12 shrink-0" />
+            <span className="truncate">Customize</span>
           </Button>
         </Link>
       </>
@@ -449,7 +451,7 @@ function ProductViewContent() {
     <Button
       variant="outline"
       size="lg"
-      className="rounded-full h-14 w-full sm:w-[120px] shrink-0"
+      className="rounded-full h-14 w-[56px] sm:w-[120px] shrink-0 p-0 sm:px-4 flex items-center justify-center"
       onClick={handleShare}
     >
       <AnimatePresence mode="wait" initial={false}>
@@ -459,10 +461,10 @@ function ProductViewContent() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="flex items-center gap-2 text-green-600"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 text-green-600"
           >
-            <Check className="w-4 h-4" />
-            Copied
+            <Check className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Copied</span>
           </motion.span>
         ) : (
           <motion.span
