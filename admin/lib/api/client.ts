@@ -38,6 +38,40 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status, body);
 }
 
+function replaceImageOrigins(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  if (typeof window === "undefined") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(replaceImageOrigins);
+  }
+
+  const newObj: any = { ...obj };
+  for (const key in newObj) {
+    const val = newObj[key];
+    if ((key === "imageIds" || key === "customisationImageIds" || key === "customisationImageIds") && Array.isArray(val)) {
+      newObj[key] = val.map((url: string) => {
+        try {
+          const u = new URL(url);
+          return window.origin + u.pathname + u.search;
+        } catch {
+          return url.startsWith("/") ? window.origin + url : url;
+        }
+      });
+    } else if (key === "url" && typeof val === "string" && (val.includes("/uploads/") || val.startsWith("http"))) {
+      try {
+        const u = new URL(val);
+        newObj[key] = window.origin + u.pathname + u.search;
+      } catch {
+        if (val.startsWith("/")) newObj[key] = window.origin + val;
+      }
+    } else if (typeof val === "object" && val !== null) {
+      newObj[key] = replaceImageOrigins(val);
+    }
+  }
+  return newObj;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
@@ -65,7 +99,8 @@ export async function apiRequest<T>(
 
   const contentType = res.headers.get("content-type");
   if (contentType?.includes("application/json")) {
-    return res.json() as Promise<T>;
+    const json = await res.json();
+    return replaceImageOrigins(json) as Promise<T>;
   }
   return undefined as T;
 }

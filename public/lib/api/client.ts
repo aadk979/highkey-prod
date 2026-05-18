@@ -18,6 +18,40 @@ export class StorefrontApiError extends Error {
   }
 }
 
+function replaceImageOrigins(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  if (typeof window === "undefined") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(replaceImageOrigins);
+  }
+
+  const newObj: any = { ...obj };
+  for (const key in newObj) {
+    const val = newObj[key];
+    if ((key === "imageIds" || key === "customisationImageIds") && Array.isArray(val)) {
+      newObj[key] = val.map((url: string) => {
+        try {
+          const u = new URL(url);
+          return window.origin + u.pathname + u.search;
+        } catch {
+          return url.startsWith("/") ? window.origin + url : url;
+        }
+      });
+    } else if (key === "url" && typeof val === "string" && (val.includes("/uploads/") || val.startsWith("http"))) {
+      try {
+        const u = new URL(val);
+        newObj[key] = window.origin + u.pathname + u.search;
+      } catch {
+        if (val.startsWith("/")) newObj[key] = window.origin + val;
+      }
+    } else if (typeof val === "object" && val !== null) {
+      newObj[key] = replaceImageOrigins(val);
+    }
+  }
+  return newObj;
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit
@@ -39,5 +73,5 @@ export async function apiFetch<T>(
     throw new StorefrontApiError(message, response.status);
   }
 
-  return json as T;
+  return replaceImageOrigins(json) as T;
 }
