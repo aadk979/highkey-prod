@@ -1,0 +1,54 @@
+{
+  "id": "admin-auth",
+  "group": "Admin Auth",
+  "description": "All auth endpoints use HTTP-only cookies for session management. Login is rate limited to 5 attempts per 15 minutes.",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/auth/login",
+      "description": "Authenticate admin. Sets accessToken, refreshToken, and sessionId as HTTP-only cookies. Rate limited: 5 attempts per 15 minutes.",
+      "req": {
+        "email": "string (required, valid email)",
+        "password": "string (required, min 8 chars)"
+      },
+      "res": {
+        "message": "Logged in successfully",
+        "admin": {
+          "id": "uuid",
+          "email": "string",
+          "name": "string",
+          "role": "admin | super_admin"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/auth/logout",
+      "description": "Log out the current admin session. Clears auth cookies. Requires authentication.",
+      "auth": "Required (cookie-based)",
+      "req": null,
+      "res": {
+        "message": "Logged Out"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/auth/me",
+      "description": "Get the authenticated admin's profile. Returns full account object minus passwordHash. Requires authentication.",
+      "auth": "Required (cookie-based)",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "email": "string",
+        "name": "string",
+        "role": "admin | super_admin",
+        "isActive": "boolean",
+        "lastLoginAt": "iso-date | null",
+        "failedLoginAttempts": "number",
+        "lockedUntil": "iso-date | null",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date"
+      }
+    }
+  ]
+}

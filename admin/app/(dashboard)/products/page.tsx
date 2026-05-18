@@ -23,7 +23,7 @@ import { Select } from "@/components/ui/select";
 import { ProductForm } from "@/components/products/product-form";
 import { productsApi } from "@/lib/api/products";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
-import { formatCents } from "@/lib/utils";
+import { formatCents, formatDate } from "@/lib/utils";
 import type { ProductType } from "@/lib/types/product";
 
 export default function ProductsPage() {
@@ -91,6 +91,14 @@ export default function ProductsPage() {
                   <Th>Price</Th>
                   <Th>Stock</Th>
                   <Th>Status</Th>
+                  <Th>ID</Th>
+                  <Th>Description</Th>
+                  <Th>Customizable</Th>
+                  <Th>Currency</Th>
+                  <Th>Images</Th>
+                  <Th>Dimensions</Th>
+                  <Th>Created</Th>
+                  <Th>Updated</Th>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -101,11 +109,39 @@ export default function ProductsPage() {
                   >
                     <Td className="font-medium text-ink">{product.name}</Td>
                     <Td className="capitalize">{product.productType}</Td>
-                    <Td>{formatCents(product.basePriceCents, product.currencyCode)}</Td>
+                    <Td>
+                      {formatCents(
+                        product.basePriceCents,
+                        product.currencyCode,
+                      )}
+                    </Td>
                     <Td>{product.availableStock}</Td>
                     <Td>
                       <ActiveBadge active={product.isActive} />
                     </Td>
+                    <Td>
+                      <span className="font-mono text-xs" title={product.id}>
+                        {product.id.slice(0, 8)}&hellip;
+                      </span>
+                    </Td>
+                    <Td>
+                      <span
+                        className="block max-w-[200px] truncate"
+                        title={product.description ?? "null"}
+                      >
+                        {product.description ?? "null"}
+                      </span>
+                    </Td>
+                    <Td>{product.isCustomizable ? "Yes" : "No"}</Td>
+                    <Td>{product.currencyCode}</Td>
+                    <Td>{product.imageIds.length}</Td>
+                    <Td>
+                      {product.dimensions != null
+                        ? `${product.dimensions.maxWidthMm ?? "?"}\u00d7${product.dimensions.maxHeightMm ?? "?"} mm`
+                        : "null"}
+                    </Td>
+                    <Td>{formatDate(product.createdAt)}</Td>
+                    <Td>{formatDate(product.updatedAt)}</Td>
                   </TableRow>
                 ))}
               </TableBody>
@@ -117,7 +153,11 @@ export default function ProductsPage() {
         )}
       </Card>
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New product">
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="New product"
+      >
         <ProductForm
           onCancel={() => setCreateOpen(false)}
           onSubmit={async (payload) => {

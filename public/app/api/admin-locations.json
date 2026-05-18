@@ -1,0 +1,129 @@
+{
+  "id": "admin-locations",
+  "group": "Admin Locations",
+  "description": "All endpoints require authentication.",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/collection-locations",
+      "description": "List all collection locations (active and inactive). Paginated.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "name": "string",
+            "address": "string",
+            "postalCode": "string | null",
+            "instructions": "string | null",
+            "isActive": "boolean",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/collection-locations/:id",
+      "description": "Get a single collection location by ID.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "name": "string",
+        "address": "string",
+        "postalCode": "string | null",
+        "instructions": "string | null",
+        "isActive": "boolean",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/collection-locations",
+      "description": "Create a new collection location.",
+      "req": {
+        "name": "string (required, max 255)",
+        "address": "string (required)",
+        "postalCode": "string (optional, max 16)",
+        "instructions": "string (optional)",
+        "isActive": "boolean (optional, default: true)"
+      },
+      "res": {
+        "id": "uuid",
+        "name": "string",
+        "address": "string",
+        "postalCode": "string | null",
+        "instructions": "string | null",
+        "isActive": "boolean",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/collection-locations/:id",
+      "description": "Update a collection location. All fields optional.",
+      "req": {
+        "name": "string (optional, max 255)",
+        "address": "string (optional)",
+        "postalCode": "string (optional, max 16)",
+        "instructions": "string (optional)",
+        "isActive": "boolean (optional)"
+      },
+      "res": {
+        "id": "uuid",
+        "name": "string",
+        "address": "string",
+        "postalCode": "string | null",
+        "instructions": "string | null",
+        "isActive": "boolean",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/collection-locations/:id/activate",
+      "description": "Set location isActive to true. Returns full location object.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "name": "string",
+        "address": "string",
+        "postalCode": "string | null",
+        "instructions": "string | null",
+        "isActive": true,
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/collection-locations/:id/deactivate",
+      "description": "Set location isActive to false. Returns full location object.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "name": "string",
+        "address": "string",
+        "postalCode": "string | null",
+        "instructions": "string | null",
+        "isActive": false,
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date"
+      }
+    }
+  ]
+}

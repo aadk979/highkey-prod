@@ -1,0 +1,342 @@
+{
+  "id": "admin-orders",
+  "group": "Admin Orders",
+  "description": "All endpoints require authentication. Refund endpoint requires super_admin role.",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/orders",
+      "description": "List all orders with optional filters and pagination.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)",
+        "status": "OrderStatus enum (optional)",
+        "paymentStatus": "PaymentStatus enum (optional)",
+        "email": "string (optional, partial match, case-insensitive)",
+        "phone": "string (optional, partial match)",
+        "orderNumber": "number (optional, exact match)",
+        "from": "iso-date (optional, createdAt >= from)",
+        "to": "iso-date (optional, createdAt <= to)",
+        "roadshow": "boolean string — pass 'true' to return only roadshow orders (orders where customizationMeta.isRoadshow === true)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "orderNumber": "number",
+            "publicToken": "string",
+            "customerName": "string",
+            "customerEmail": "string",
+            "countryCode": "string",
+            "customerPhone": "string",
+            "fulfillmentMethod": "self_collect | delivery",
+            "deliveryAddress": "string | null",
+            "collectionLocationId": "uuid | null",
+            "subtotalCents": "number",
+            "discountTotalCents": "number",
+            "taxTotalCents": "number",
+            "shippingTotalCents": "number",
+            "grandTotalCents": "number",
+            "refundedAmountCents": "number",
+            "currencyCode": "string",
+            "promotionId": "uuid | null",
+            "customizationMeta": "object | null",
+            "orderStatus": "received | preparing | shipped_out | delivered | collection_scheduled | collected | cancelled | refunded | disputed",
+            "paymentStatus": "pending | requires_action | paid | failed | cancelled | partially_refunded | refunded | disputed | disputed_won | disputed_lost",
+            "customerNote": "string | null",
+            "paidAt": "iso-date | null",
+            "cancelledAt": "iso-date | null",
+            "refundedAt": "iso-date | null",
+            "disputeReason": "string | null",
+            "disputeStatus": "string | null",
+            "disputeDueBy": "iso-date | null",
+            "disputedAt": "iso-date | null",
+            "disputeResolvedAt": "iso-date | null",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date",
+            "items": ["OrderItem objects (without product relation)"],
+            "payments": ["Payment objects"],
+            "collectionLocation": "CollectionLocation object | null"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/orders/:id",
+      "description": "Get full order details by ID. Includes items with product and appliedPromotion, payments with refunds and disputes, promotion, and collectionLocation.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "orderNumber": "number",
+        "publicToken": "string",
+        "customerName": "string",
+        "customerEmail": "string",
+        "countryCode": "string",
+        "customerPhone": "string",
+        "fulfillmentMethod": "self_collect | delivery",
+        "deliveryAddress": "string | null",
+        "collectionLocationId": "uuid | null",
+        "subtotalCents": "number",
+        "discountTotalCents": "number",
+        "taxTotalCents": "number",
+        "shippingTotalCents": "number",
+        "grandTotalCents": "number",
+        "refundedAmountCents": "number",
+        "currencyCode": "string",
+        "promotionId": "uuid | null",
+        "customizationMeta": "object | null",
+        "orderStatus": "string",
+        "paymentStatus": "string",
+        "customerNote": "string | null",
+        "paidAt": "iso-date | null",
+        "cancelledAt": "iso-date | null",
+        "refundedAt": "iso-date | null",
+        "disputeReason": "string | null",
+        "disputeStatus": "string | null",
+        "disputeDueBy": "iso-date | null",
+        "disputedAt": "iso-date | null",
+        "disputeResolvedAt": "iso-date | null",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "items": [
+          {
+            "id": "uuid",
+            "orderId": "uuid",
+            "productId": "uuid | null",
+            "appliedPromotionId": "uuid | null",
+            "snapshotName": "string",
+            "snapshotSlug": "string",
+            "quantity": "number",
+            "unitPriceCents": "number",
+            "discountCents": "number",
+            "lineTotalCents": "number",
+            "createdAt": "iso-date",
+            "product": "Product object | null",
+            "appliedPromotion": "Promotion object | null"
+          }
+        ],
+        "payments": [
+          {
+            "id": "uuid",
+            "orderId": "uuid",
+            "provider": "stripe",
+            "mode": "test | live",
+            "stripeCheckoutSessionId": "string | null",
+            "stripePaymentIntentId": "string | null",
+            "stripeChargeId": "string | null",
+            "status": "string",
+            "amountCents": "number",
+            "amountReceivedCents": "number",
+            "amountRefundedCents": "number",
+            "currencyCode": "string",
+            "stripeCustomerId": "string | null",
+            "checkoutCompletedAt": "iso-date | null",
+            "paidAt": "iso-date | null",
+            "cancelledAt": "iso-date | null",
+            "failedAt": "iso-date | null",
+            "rawLastPayload": "object | null",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date",
+            "refunds": ["PaymentRefund objects"],
+            "disputes": ["PaymentDispute objects"]
+          }
+        ],
+        "promotion": "Promotion object | null",
+        "collectionLocation": "CollectionLocation object | null"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/orders/:id/status",
+      "description": "Update order status. Valid transitions: received→preparing, preparing→shipped_out|collection_scheduled, shipped_out→delivered, collection_scheduled→collected.",
+      "req": {
+        "status": "received | preparing | shipped_out | delivered | collection_scheduled | collected (required)"
+      },
+      "res": {
+        "_note": "Returns the updated Order object (same shape as the list items, without deep includes)",
+        "id": "uuid",
+        "orderNumber": "number",
+        "orderStatus": "string (the new status)",
+        "paymentStatus": "string",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "...": "all other Order fields"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/orders/:id/cancel",
+      "description": "Cancel an order. Restores stock for unpaid orders. Sets paymentStatus to cancelled if not yet paid.",
+      "req": null,
+      "res": {
+        "_note": "Returns the updated Order object",
+        "id": "uuid",
+        "orderNumber": "number",
+        "orderStatus": "cancelled",
+        "cancelledAt": "iso-date",
+        "...": "all other Order fields"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/orders/:id/refunds",
+      "description": "Create a refund for an order. Requires super_admin role. Either amountCents or full:true must be provided.",
+      "auth": "Required — super_admin role only",
+      "req": {
+        "amountCents": "number (optional, integer >= 1, must not exceed refundable balance)",
+        "full": "boolean (optional, if true refunds remaining balance)",
+        "reason": "requested_by_customer | duplicate | fraudulent | other (optional, default: requested_by_customer)",
+        "note": "string (optional, max 500)"
+      },
+      "res": {
+        "message": "Refund requested",
+        "orderId": "uuid",
+        "stripeRefundId": "string (Stripe refund ID)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/orders/:id/payments",
+      "description": "Get the payment timeline for an order. Includes refunds and disputes for each payment.",
+      "req": null,
+      "res": [
+        {
+          "id": "uuid",
+          "orderId": "uuid",
+          "provider": "stripe",
+          "mode": "test | live",
+          "stripeCheckoutSessionId": "string | null",
+          "stripePaymentIntentId": "string | null",
+          "stripeChargeId": "string | null",
+          "status": "string",
+          "amountCents": "number",
+          "amountReceivedCents": "number",
+          "amountRefundedCents": "number",
+          "currencyCode": "string",
+          "stripeCustomerId": "string | null",
+          "checkoutCompletedAt": "iso-date | null",
+          "paidAt": "iso-date | null",
+          "cancelledAt": "iso-date | null",
+          "failedAt": "iso-date | null",
+          "rawLastPayload": "object | null",
+          "createdAt": "iso-date",
+          "updatedAt": "iso-date",
+          "refunds": [
+            {
+              "id": "uuid",
+              "paymentId": "uuid",
+              "orderId": "uuid",
+              "stripeRefundId": "string",
+              "amountCents": "number",
+              "currencyCode": "string",
+              "status": "string",
+              "reason": "string | null",
+              "failureReason": "string | null",
+              "refundedAt": "iso-date | null",
+              "rawPayload": "object | null",
+              "createdAt": "iso-date",
+              "updatedAt": "iso-date"
+            }
+          ],
+          "disputes": [
+            {
+              "id": "uuid",
+              "paymentId": "uuid",
+              "orderId": "uuid",
+              "stripeDisputeId": "string",
+              "amountCents": "number",
+              "currencyCode": "string",
+              "reason": "string | null",
+              "status": "string",
+              "dueBy": "iso-date | null",
+              "evidenceSubmittedAt": "iso-date | null",
+              "wonAt": "iso-date | null",
+              "lostAt": "iso-date | null",
+              "rawPayload": "object | null",
+              "createdAt": "iso-date",
+              "updatedAt": "iso-date"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/orders/:id/audit-logs",
+      "description": "Get paginated audit logs for a specific order.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "occurredAt": "iso-date",
+            "actorType": "admin | system | stripe_webhook",
+            "accountId": "uuid | null",
+            "stripeEventRecordId": "uuid | null",
+            "source": "string",
+            "action": "string",
+            "entityType": "string",
+            "entityId": "string",
+            "orderId": "uuid | null",
+            "requestId": "string | null",
+            "correlationId": "string | null",
+            "ipAddress": "string | null",
+            "userAgent": "string | null",
+            "summary": "string",
+            "beforeData": "object | null",
+            "afterData": "object | null",
+            "metadata": "object | null",
+            "success": "boolean",
+            "createdAt": "iso-date"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/orders/:id/payment-link",
+      "description": "Generate a new Stripe payment link for an unpaid order. Expires any existing pending checkout sessions first.",
+      "req": null,
+      "res": {
+        "orderId": "uuid",
+        "orderNumber": "number",
+        "paymentId": "uuid",
+        "checkoutUrl": "string (Stripe checkout URL)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/orders/roadshow/create",
+      "description": "Create a Stripe checkout session for a roadshow (physical booth) sale. Returns a checkout URL and QR code for the customer to scan and pay. No product or stock is linked — the order is created in the DB only after the Stripe webhook confirms payment.",
+      "auth": "Required — any authenticated admin",
+      "req": {
+        "priceCents": "number (required, price in cents e.g. 3500 = SGD 35.00)",
+        "location": "string (required, e.g. 'Suntec City Hall 3')",
+        "description": "string (optional, shown to customer on Stripe checkout page)"
+      },
+      "res": {
+        "checkoutUrl": "string (Stripe-hosted checkout URL)",
+        "qrCode": "string (base64 PNG data URL of QR code pointing to checkoutUrl)",
+        "sessionId": "string (Stripe checkout session ID)"
+      }
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "id": "admin-finance",
+  "group": "Admin Finance",
+  "description": "All endpoints require authentication. Reprocess requires super_admin role.",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/finance/payments",
+      "description": "List all payments. Includes related order. Supports filtering and pagination.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)",
+        "status": "PaymentStatus enum (optional)",
+        "orderId": "uuid (optional)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "orderId": "uuid",
+            "provider": "stripe",
+            "mode": "test | live",
+            "stripeCheckoutSessionId": "string | null",
+            "stripePaymentIntentId": "string | null",
+            "stripeChargeId": "string | null",
+            "status": "pending | requires_action | paid | failed | cancelled | partially_refunded | refunded | disputed | disputed_won | disputed_lost",
+            "amountCents": "number",
+            "amountReceivedCents": "number",
+            "amountRefundedCents": "number",
+            "currencyCode": "string",
+            "stripeCustomerId": "string | null",
+            "checkoutCompletedAt": "iso-date | null",
+            "paidAt": "iso-date | null",
+            "cancelledAt": "iso-date | null",
+            "failedAt": "iso-date | null",
+            "rawLastPayload": "object | null",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date",
+            "order": {
+              "id": "uuid",
+              "orderNumber": "number",
+              "customerName": "string",
+              "customerEmail": "string",
+              "orderStatus": "string",
+              "...": "other Order fields"
+            }
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/finance/refunds",
+      "description": "List all refunds. Includes related order and payment.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)",
+        "orderId": "uuid (optional)",
+        "status": "string (optional)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "paymentId": "uuid",
+            "orderId": "uuid",
+            "stripeRefundId": "string",
+            "amountCents": "number",
+            "currencyCode": "string",
+            "status": "string",
+            "reason": "string | null",
+            "failureReason": "string | null",
+            "refundedAt": "iso-date | null",
+            "rawPayload": "object | null",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date",
+            "order": "Order object",
+            "payment": "Payment object"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/finance/disputes",
+      "description": "List all disputes. Includes related order and payment.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)",
+        "orderId": "uuid (optional)",
+        "status": "string (optional)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "paymentId": "uuid",
+            "orderId": "uuid",
+            "stripeDisputeId": "string",
+            "amountCents": "number",
+            "currencyCode": "string",
+            "reason": "string | null",
+            "status": "string",
+            "dueBy": "iso-date | null",
+            "evidenceSubmittedAt": "iso-date | null",
+            "wonAt": "iso-date | null",
+            "lostAt": "iso-date | null",
+            "rawPayload": "object | null",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date",
+            "order": "Order object",
+            "payment": "Payment object"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/finance/stripe-events",
+      "description": "List all Stripe webhook events.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)",
+        "eventType": "string (optional, e.g. checkout.session.completed)",
+        "processingStatus": "received | processing | processed | failed | ignored (optional)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "stripeEventId": "string",
+            "mode": "test | live",
+            "eventType": "string",
+            "apiVersion": "string | null",
+            "stripeObjectType": "string | null",
+            "stripeObjectId": "string | null",
+            "relatedOrderId": "uuid | null",
+            "relatedPaymentId": "uuid | null",
+            "relatedRefundId": "uuid | null",
+            "relatedDisputeId": "uuid | null",
+            "signatureVerified": "boolean",
+            "processingStatus": "received | processing | processed | failed | ignored",
+            "stripeCreatedAt": "iso-date | null",
+            "receivedAt": "iso-date",
+            "processedAt": "iso-date | null",
+            "errorMessage": "string | null",
+            "payload": "object (full Stripe event)",
+            "createdAt": "iso-date"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/finance/audit-logs",
+      "description": "List all audit logs. Supports filtering.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)",
+        "actorType": "admin | system | stripe_webhook (optional)",
+        "entityType": "string (optional)",
+        "accountId": "uuid (optional)",
+        "orderId": "uuid (optional)",
+        "action": "string (optional, partial match)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "occurredAt": "iso-date",
+            "actorType": "admin | system | stripe_webhook",
+            "accountId": "uuid | null",
+            "stripeEventRecordId": "uuid | null",
+            "source": "string",
+            "action": "string",
+            "entityType": "string",
+            "entityId": "string",
+            "orderId": "uuid | null",
+            "requestId": "string | null",
+            "correlationId": "string | null",
+            "ipAddress": "string | null",
+            "userAgent": "string | null",
+            "summary": "string",
+            "beforeData": "object | null",
+            "afterData": "object | null",
+            "metadata": "object | null",
+            "success": "boolean",
+            "createdAt": "iso-date"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/finance/stripe-events/:id/reprocess",
+      "description": "Reprocess a failed Stripe webhook event. Requires super_admin role. Re-fetches from Stripe API (falls back to stored payload if >30 days old).",
+      "auth": "Required — super_admin role only",
+      "req": null,
+      "res": {
+        "reprocessed": true
+      }
+    }
+  ]
+}

@@ -58,7 +58,10 @@ export default function PromotionsPage() {
     setModalOpen(true);
   }
 
-  function set<K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) {
+  function set<K extends keyof typeof EMPTY_FORM>(
+    key: K,
+    value: (typeof EMPTY_FORM)[K],
+  ) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -113,7 +116,9 @@ export default function PromotionsPage() {
       setModalOpen(false);
       reload();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create promotion.");
+      setFormError(
+        err instanceof Error ? err.message : "Failed to create promotion.",
+      );
     } finally {
       setSaving(false);
     }
@@ -151,6 +156,11 @@ export default function PromotionsPage() {
                   <Th>Period</Th>
                   <Th>Usage limit</Th>
                   <Th>Status</Th>
+                  <Th>ID</Th>
+                  <Th>Product ID</Th>
+                  <Th>Track by Phone</Th>
+                  <Th>Created</Th>
+                  <Th>Updated</Th>
                   <Th>Actions</Th>
                 </TableRow>
               </TableHead>
@@ -160,7 +170,7 @@ export default function PromotionsPage() {
                     <Td className="text-ink">
                       {promo.storeWide
                         ? "Store-wide"
-                        : promo.product?.name ?? promo.productId ?? "Product"}
+                        : (promo.product?.name ?? promo.productId ?? "Product")}
                     </Td>
                     <Td>
                       {promo.discountPercentage != null
@@ -170,7 +180,8 @@ export default function PromotionsPage() {
                           : "—"}
                     </Td>
                     <Td className="text-xs">
-                      {formatDate(promo.startDate)} – {formatDate(promo.endDate)}
+                      {formatDate(promo.startDate)} –{" "}
+                      {formatDate(promo.endDate)}
                     </Td>
                     <Td className="text-xs text-ink-muted">
                       {promo.usageLimit ?? "Unlimited"}
@@ -178,6 +189,19 @@ export default function PromotionsPage() {
                     <Td>
                       <ActiveBadge active={promo.isActive} />
                     </Td>
+                    <Td>
+                      <span className="font-mono text-xs" title={promo.id}>
+                        {promo.id.slice(0, 8)}&hellip;
+                      </span>
+                    </Td>
+                    <Td>
+                      <span className="font-mono text-xs">
+                        {promo.productId ?? "null"}
+                      </span>
+                    </Td>
+                    <Td>{promo.trackByPhone ? "Yes" : "No"}</Td>
+                    <Td>{formatDate(promo.createdAt)}</Td>
+                    <Td>{formatDate(promo.updatedAt)}</Td>
                     <Td>
                       <Button
                         variant="ghost"
@@ -198,9 +222,12 @@ export default function PromotionsPage() {
         )}
       </Card>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New promotion">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="New promotion"
+      >
         <form onSubmit={handleCreate} className="flex flex-col gap-5">
-
           {/* ── Scope ── */}
           <fieldset className="flex flex-col gap-2">
             <legend className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
@@ -284,7 +311,9 @@ export default function PromotionsPage() {
               min="0"
               max={form.discountType === "percentage" ? "100" : undefined}
               step={form.discountType === "percentage" ? "1" : "0.01"}
-              placeholder={form.discountType === "percentage" ? "e.g. 20" : "e.g. 15.00"}
+              placeholder={
+                form.discountType === "percentage" ? "e.g. 20" : "e.g. 15.00"
+              }
               required
               value={form.discountValue}
               onChange={(e) => set("discountValue", e.target.value)}
@@ -350,7 +379,11 @@ export default function PromotionsPage() {
           )}
 
           <div className="flex justify-end gap-2 border-t border-hairline pt-4">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" loading={saving}>

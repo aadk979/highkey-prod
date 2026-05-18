@@ -1,0 +1,167 @@
+{
+  "id": "admin-promotions",
+  "group": "Admin Promotions",
+  "description": "All endpoints require authentication. Promotion responses always include the related product object.",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/promotions",
+      "description": "List all promotions (active and inactive). Paginated.",
+      "queryParams": {
+        "page": "number (default: 1)",
+        "limit": "number (default: 20, max: 100)"
+      },
+      "req": null,
+      "res": {
+        "data": [
+          {
+            "id": "uuid",
+            "productId": "uuid | null",
+            "storeWide": "boolean",
+            "discountPercentage": "number | null",
+            "discountValueCents": "number | null",
+            "startDate": "iso-date",
+            "endDate": "iso-date",
+            "trackByPhone": "boolean",
+            "usageLimit": "number | null",
+            "isActive": "boolean",
+            "createdAt": "iso-date",
+            "updatedAt": "iso-date",
+            "product": "Product object | null"
+          }
+        ],
+        "pagination": {
+          "page": "number",
+          "limit": "number",
+          "total": "number",
+          "totalPages": "number"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/promotions/:id",
+      "description": "Get a single promotion by ID.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "productId": "uuid | null",
+        "storeWide": "boolean",
+        "discountPercentage": "number | null",
+        "discountValueCents": "number | null",
+        "startDate": "iso-date",
+        "endDate": "iso-date",
+        "trackByPhone": "boolean",
+        "usageLimit": "number | null",
+        "isActive": "boolean",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "product": "Product object | null"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/promotions",
+      "description": "Create a new promotion. Either discountPercentage or discountValueCents must be > 0. endDate must be after startDate.",
+      "req": {
+        "productId": "uuid | null (optional — if null and storeWide=false, promotion has no product scope)",
+        "storeWide": "boolean (optional, default: false)",
+        "discountPercentage": "number | null (optional, 0-100)",
+        "discountValueCents": "number | null (optional, integer >= 0)",
+        "startDate": "iso-date (required, ISO 8601 datetime)",
+        "endDate": "iso-date (required, ISO 8601 datetime, must be after startDate)",
+        "trackByPhone": "boolean (optional, default: false)",
+        "usageLimit": "number | null (optional, integer >= 1)",
+        "isActive": "boolean (optional, default: true)"
+      },
+      "res": {
+        "id": "uuid",
+        "productId": "uuid | null",
+        "storeWide": "boolean",
+        "discountPercentage": "number | null",
+        "discountValueCents": "number | null",
+        "startDate": "iso-date",
+        "endDate": "iso-date",
+        "trackByPhone": "boolean",
+        "usageLimit": "number | null",
+        "isActive": "boolean",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "product": "Product object | null"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/promotions/:id",
+      "description": "Update a promotion. All fields optional. If discount fields are provided, at least one must be > 0.",
+      "req": {
+        "productId": "uuid | null (optional)",
+        "storeWide": "boolean (optional)",
+        "discountPercentage": "number | null (optional, 0-100)",
+        "discountValueCents": "number | null (optional, integer >= 0)",
+        "startDate": "iso-date (optional)",
+        "endDate": "iso-date (optional)",
+        "trackByPhone": "boolean (optional)",
+        "usageLimit": "number | null (optional, integer >= 1)",
+        "isActive": "boolean (optional)"
+      },
+      "res": {
+        "id": "uuid",
+        "productId": "uuid | null",
+        "storeWide": "boolean",
+        "discountPercentage": "number | null",
+        "discountValueCents": "number | null",
+        "startDate": "iso-date",
+        "endDate": "iso-date",
+        "trackByPhone": "boolean",
+        "usageLimit": "number | null",
+        "isActive": "boolean",
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "product": "Product object | null"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/promotions/:id/activate",
+      "description": "Set promotion isActive to true. Returns full promotion with product.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "productId": "uuid | null",
+        "storeWide": "boolean",
+        "discountPercentage": "number | null",
+        "discountValueCents": "number | null",
+        "startDate": "iso-date",
+        "endDate": "iso-date",
+        "trackByPhone": "boolean",
+        "usageLimit": "number | null",
+        "isActive": true,
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "product": "Product object | null"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/promotions/:id/deactivate",
+      "description": "Set promotion isActive to false. Returns full promotion with product.",
+      "req": null,
+      "res": {
+        "id": "uuid",
+        "productId": "uuid | null",
+        "storeWide": "boolean",
+        "discountPercentage": "number | null",
+        "discountValueCents": "number | null",
+        "startDate": "iso-date",
+        "endDate": "iso-date",
+        "trackByPhone": "boolean",
+        "usageLimit": "number | null",
+        "isActive": false,
+        "createdAt": "iso-date",
+        "updatedAt": "iso-date",
+        "product": "Product object | null"
+      }
+    }
+  ]
+}

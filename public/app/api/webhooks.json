@@ -1,0 +1,17 @@
+{
+  "id": "webhooks",
+  "group": "Webhooks",
+  "description": "Stripe webhook endpoint. Not called by the frontend — handled automatically by Stripe.",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/webhooks/stripe",
+      "description": "Stripe webhook receiver. Uses raw body for signature verification. Handles: checkout.session.completed, checkout.session.expired, payment_intent.succeeded, payment_intent.payment_failed, payment_intent.canceled, charge.refunded, refund.created, refund.updated, charge.dispute.created, charge.dispute.updated, charge.dispute.closed. Roadshow sessions (metadata.source=roadshow) create orders automatically on checkout completion.",
+      "req": "Raw Stripe webhook event body (signature verified via stripe-signature header)",
+      "res": {
+        "received": true,
+        "processed": true
+      }
+    }
+  ]
+}

@@ -54,6 +54,7 @@ export interface PaymentRefund {
   reason: string | null;
   failureReason: string | null;
   refundedAt: string | null;
+  rawPayload: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,6 +72,7 @@ export interface PaymentDispute {
   evidenceSubmittedAt: string | null;
   wonAt: string | null;
   lostAt: string | null;
+  rawPayload: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -93,6 +95,7 @@ export interface Payment {
   paidAt: string | null;
   cancelledAt: string | null;
   failedAt: string | null;
+  rawLastPayload: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   refunds?: PaymentRefund[];
@@ -157,12 +160,20 @@ export interface AuditLog {
   occurredAt: string;
   actorType: "admin" | "system" | "stripe_webhook";
   accountId: string | null;
+  stripeEventRecordId: string | null;
   source: string;
   action: string;
   entityType: string;
   entityId: string;
   orderId: string | null;
+  requestId: string | null;
+  correlationId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
   summary: string;
+  beforeData: Record<string, unknown> | null;
+  afterData: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
   success: boolean;
   createdAt: string;
 }

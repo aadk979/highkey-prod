@@ -36,7 +36,9 @@ export default function ProductDetailPage({
       const data = await productsApi.get(id);
       setProduct(data);
       if (data.productType === "accessory") {
-        const tplData = await productsApi.getCustomisationTemplates(id).catch(() => ({ images: [] }));
+        const tplData = await productsApi
+          .getCustomisationTemplates(id)
+          .catch(() => ({ images: [] }));
         setTemplates(tplData.images);
       }
     } finally {
@@ -94,7 +96,7 @@ export default function ProductDetailPage({
     if (!confirm("Delete this template?")) return;
     try {
       await productsApi.deleteCustomisationTemplate(id, imageId);
-      setTemplates(templates.filter(t => t.id !== imageId));
+      setTemplates(templates.filter((t) => t.id !== imageId));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete template");
     }
@@ -129,7 +131,9 @@ export default function ProductDetailPage({
           <dl className="grid gap-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-ink-subtle">Type</dt>
-              <dd className="font-medium capitalize text-ink">{product.productType}</dd>
+              <dd className="font-medium capitalize text-ink">
+                {product.productType}
+              </dd>
             </div>
             <div>
               <dt className="text-ink-subtle">Price</dt>
@@ -150,6 +154,20 @@ export default function ProductDetailPage({
             <div>
               <dt className="text-ink-subtle">Created</dt>
               <dd className="text-ink">{formatDate(product.createdAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-subtle">ID</dt>
+              <dd className="font-mono text-xs text-ink select-all">
+                {product.id}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-subtle">Currency</dt>
+              <dd className="font-medium text-ink">{product.currencyCode}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-subtle">Updated</dt>
+              <dd className="text-ink">{formatDate(product.updatedAt)}</dd>
             </div>
           </dl>
           <div className="mt-6 border-t border-hairline pt-6">
@@ -178,10 +196,18 @@ export default function ProductDetailPage({
                 onChange={(e) => setStockDelta(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="secondary" size="sm" onClick={() => adjustStock(-1)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => adjustStock(-1)}
+              >
                 <Minus className="size-4" />
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => adjustStock(1)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => adjustStock(1)}
+              >
                 <Plus className="size-4" />
               </Button>
             </div>
@@ -206,7 +232,9 @@ export default function ProductDetailPage({
                 }`}
               >
                 <Upload className="size-4" />
-                {uploadingTemplates ? "Uploading…" : "Upload customization image"}
+                {uploadingTemplates
+                  ? "Uploading…"
+                  : "Upload customization image"}
                 <input
                   type="file"
                   accept="image/png,image/webp"
@@ -263,7 +291,11 @@ export default function ProductDetailPage({
         </Card>
       ) : null}
 
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit product">
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit product"
+      >
         <ProductForm
           initial={product}
           onCancel={() => setEditOpen(false)}

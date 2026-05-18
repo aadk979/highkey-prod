@@ -1,0 +1,304 @@
+{
+    "id": "admin-products",
+    "group": "Admin Products",
+    "description": "All endpoints require authentication via cookie. imageIds are resolved to full URLs in responses.",
+    "endpoints": [
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/products",
+            "description": "List all products (active and inactive). Supports pagination and type filter.",
+            "queryParams": {
+                "page": "number (default: 1)",
+                "limit": "number (default: 20, max: 100)",
+                "type": "base | accessory (optional)"
+            },
+            "req": null,
+            "res": {
+                "data": [
+                    {
+                        "id": "uuid",
+                        "name": "string",
+                        "description": "string | null",
+                        "productType": "base | accessory",
+                        "isCustomizable": "boolean",
+                        "basePriceCents": "number",
+                        "currencyCode": "string",
+                        "imageIds": [
+                            "string (resolved to URLs)"
+                        ],
+                        "dimensions": "object | null",
+                        "isActive": "boolean",
+                        "availableStock": "number",
+                        "createdAt": "iso-date",
+                        "updatedAt": "iso-date"
+                    }
+                ],
+                "pagination": {
+                    "page": "number",
+                    "limit": "number",
+                    "total": "number",
+                    "totalPages": "number"
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/products/:id",
+            "description": "Get a single product by ID.",
+            "req": null,
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string (resolved to URLs)"
+                ],
+                "dimensions": "object | null",
+                "isActive": "boolean",
+                "availableStock": "number",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/admin/products",
+            "description": "Create a new product.",
+            "req": {
+                "name": "string (required, max 255)",
+                "description": "string (optional)",
+                "productType": "base | accessory (required)",
+                "isCustomizable": "boolean (optional, default: false)",
+                "basePriceCents": "number (required, integer >= 0)",
+                "currencyCode": "string (optional, 3 chars, default: SGD)",
+                "imageIds": [
+                    "string (optional, default: [])"
+                ],
+                "customisationImageIds": [
+                    "string (resolved to URLs, only for base products)"
+                ],
+                "dimensions": {
+                    "_note": "optional, nullable",
+                    "maxWidthMm": "number",
+                    "maxHeightMm": "number",
+                    "minWidthMm": "number",
+                    "minHeightMm": "number",
+                    "maxPatches": "number"
+                },
+                "isActive": "boolean (optional, default: true)",
+                "availableStock": "number (optional, integer >= 0, default: 0)"
+            },
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string"
+                ],
+                "dimensions": "object | null",
+                "isActive": "boolean",
+                "availableStock": "number",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/admin/products/:id",
+            "description": "Update a product. All fields are optional.",
+            "req": {
+                "name": "string (optional, max 255)",
+                "description": "string (optional)",
+                "productType": "base | accessory (optional)",
+                "isCustomizable": "boolean (optional)",
+                "basePriceCents": "number (optional, integer >= 0)",
+                "imageIds": [
+                    "string (optional)"
+                ],
+                "isActive": "boolean (optional)"
+            },
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string"
+                ],
+                "dimensions": "object | null",
+                "isActive": "boolean",
+                "availableStock": "number",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/admin/products/:id/stock",
+            "description": "Adjust product stock by a delta value. Positive to add, negative to subtract.",
+            "req": {
+                "delta": "number (required, integer — positive or negative)"
+            },
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string"
+                ],
+                "dimensions": "object | null",
+                "isActive": "boolean",
+                "availableStock": "number (updated value)",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/admin/products/:id/activate",
+            "description": "Set product isActive to true. Returns the full updated product.",
+            "req": null,
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string"
+                ],
+                "dimensions": "object | null",
+                "isActive": true,
+                "availableStock": "number",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/admin/products/:id/deactivate",
+            "description": "Set product isActive to false. Returns the full updated product.",
+            "req": null,
+            "res": {
+                "id": "uuid",
+                "name": "string",
+                "description": "string | null",
+                "productType": "base | accessory",
+                "isCustomizable": "boolean",
+                "basePriceCents": "number",
+                "currencyCode": "string",
+                "imageIds": [
+                    "string"
+                ],
+                "dimensions": "object | null",
+                "isActive": false,
+                "availableStock": "number",
+                "createdAt": "iso-date",
+                "updatedAt": "iso-date"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/admin/products/:id/images",
+            "description": "Upload images for a product. Max 10 files per request. Allowed types: jpg, jpeg, png, webp, gif. Magic byte verification is enforced.",
+            "req": "multipart/form-data — field name: 'images' (up to 10 files)",
+            "res": {
+                "productId": "uuid",
+                "uploadedImages": [
+                    {
+                        "id": "string (image UUID)",
+                        "filename": "string (e.g. uuid.jpg)",
+                        "url": "string (relative path: /uploads/products/:productId/:filename)"
+                    }
+                ],
+                "totalImages": "number (total images on product after upload)"
+            }
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/admin/products/:id/images/delete",
+            "description": "Delete an image from a product. Image ID is passed in the request body (not URL params).",
+            "req": {
+                "imageId": "string (required, image UUID)"
+            },
+            "res": {
+                "productId": "uuid",
+                "deletedImageId": "string",
+                "remainingImages": "number"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/products/:id/images",
+            "description": "Get all image URLs for a product.",
+            "req": null,
+            "res": {
+                "images": [
+                    {
+                        "id": "string (image UUID)",
+                        "url": "string (full URL)"
+                    }
+                ]
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/admin/products/:id/customisation-templates",
+            "description": "Upload customisation template images (PNG or WEBP only). These images serve as the canvas background during product customisation. Max 10 files per request.",
+            "req": "multipart/form-data — field name: 'images' (up to 10 files, PNG or WEBP only, max 5MB each)",
+            "res": {
+                "productId": "uuid",
+                "uploadedImages": [
+                    {
+                        "id": "string (image UUID)",
+                        "filename": "string (e.g. uuid.png)",
+                        "url": "string (full URL: /uploads/customisation/:productId/:filename)"
+                    }
+                ],
+                "totalImages": "number (total customisation templates on product after upload)"
+            }
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/admin/products/:id/customisation-templates/:imageId",
+            "description": "Delete a customisation template image from a product. Image ID is passed in the URL params.",
+            "req": null,
+            "res": {
+                "productId": "uuid",
+                "deletedImageId": "string",
+                "remainingImages": "number"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/products/:id/customisation-templates",
+            "description": "Get all customisation template images for a product.",
+            "req": null,
+            "res": {
+                "images": [
+                    {
+                        "id": "string (image UUID)",
+                        "url": "string (full URL)"
+                    }
+                ]
+            }
+        }
+    ]
+}

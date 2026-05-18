@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { PaginationBar } from "@/components/ui/pagination";
 import { locationsApi } from "@/lib/api/locations";
+import { formatDate } from "@/lib/utils";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
 
 export default function LocationsPage() {
@@ -81,7 +82,10 @@ export default function LocationsPage() {
         ) : error ? (
           <p className="p-6 text-sm text-error">{error}</p>
         ) : data.length === 0 ? (
-          <EmptyState title="No locations" description="Add a collection point." />
+          <EmptyState
+            title="No locations"
+            description="Add a collection point."
+          />
         ) : (
           <>
             <Table>
@@ -90,6 +94,11 @@ export default function LocationsPage() {
                   <Th>Name</Th>
                   <Th>Address</Th>
                   <Th>Status</Th>
+                  <Th>ID</Th>
+                  <Th>Postal Code</Th>
+                  <Th>Instructions</Th>
+                  <Th>Created</Th>
+                  <Th>Updated</Th>
                   <Th>Actions</Th>
                 </TableRow>
               </TableHead>
@@ -97,13 +106,26 @@ export default function LocationsPage() {
                 {data.map((loc) => (
                   <TableRow key={loc.id}>
                     <Td className="font-medium text-ink">{loc.name}</Td>
-                    <Td>
-                      {loc.address}
-                      {loc.postalCode ? ` · ${loc.postalCode}` : ""}
-                    </Td>
+                    <Td>{loc.address}</Td>
                     <Td>
                       <ActiveBadge active={loc.isActive} />
                     </Td>
+                    <Td>
+                      <span className="font-mono text-xs" title={loc.id}>
+                        {loc.id.slice(0, 8)}&hellip;
+                      </span>
+                    </Td>
+                    <Td>{loc.postalCode ?? "null"}</Td>
+                    <Td>
+                      <span
+                        className="block max-w-[200px] truncate"
+                        title={loc.instructions ?? "null"}
+                      >
+                        {loc.instructions ?? "null"}
+                      </span>
+                    </Td>
+                    <Td>{formatDate(loc.createdAt)}</Td>
+                    <Td>{formatDate(loc.updatedAt)}</Td>
                     <Td>
                       <Button
                         variant="ghost"
@@ -124,9 +146,18 @@ export default function LocationsPage() {
         )}
       </Card>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New location">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="New location"
+      >
         <form onSubmit={handleCreate} className="flex flex-col gap-4">
-          <Input label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            label="Name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <Textarea
             label="Address"
             required
@@ -144,7 +175,11 @@ export default function LocationsPage() {
             onChange={(e) => setInstructions(e.target.value)}
           />
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" loading={saving}>
