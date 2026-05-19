@@ -300,7 +300,13 @@ export default function ProductDetailPage({
           initial={product}
           onCancel={() => setEditOpen(false)}
           onSubmit={async (payload) => {
-            const updated = await productsApi.update(id, payload);
+            const { availableStock, ...productPayload } = payload;
+            const nextStock = availableStock ?? product.availableStock;
+            const stockDelta = nextStock - product.availableStock;
+            let updated = await productsApi.update(id, productPayload);
+            if (stockDelta !== 0) {
+              updated = await productsApi.adjustStock(id, stockDelta);
+            }
             setProduct(updated);
             setEditOpen(false);
           }}

@@ -45,4 +45,6 @@ export interface CreateProductPayload {
   availableStock?: number;
 }
 
-export type UpdateProductPayload = Partial<CreateProductPayload>;
+export type UpdateProductPayload = Partial<
+  Omit<CreateProductPayload, "availableStock">
+>;
