@@ -41,7 +41,11 @@ function ProductCard({
   const outOfStock = item.availableStock <= 0;
 
   const navigate = () => router.push(productPath(item.id));
-  const navigateAction = (e: React.MouseEvent) => {
+  const navigateView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate();
+  };
+  const navigateCustomize = (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/customize?product_id=${item.id}`);
   };
@@ -154,19 +158,43 @@ function ProductCard({
               initial={false}
               animate={{ y: hovered ? 0 : 16, opacity: hovered ? 1 : 0 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-end justify-between gap-4"
+              className="flex flex-col gap-4"
             >
-              <div className="min-w-0 text-white">
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70 mb-1">
-                  {item.productType}
-                </p>
-                <p className="font-heading text-xl sm:text-2xl font-light leading-tight truncate">
-                  {item.name}
-                </p>
+              <div className="flex items-end justify-between gap-4">
+                <div className="min-w-0 text-white">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70 mb-1">
+                    {item.productType}
+                  </p>
+                  <p className="font-heading text-xl sm:text-2xl font-light leading-tight truncate">
+                    {item.name}
+                  </p>
+                </div>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
+                  <ArrowUpRight className="w-5 h-5" />
+                </span>
               </div>
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
-                <ArrowUpRight className="w-5 h-5" />
-              </span>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full bg-white text-foreground hover:bg-white/90"
+                  onClick={navigateView}
+                >
+                  View
+                </Button>
+                {isCustomizableBase && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-full shadow-lg"
+                    onClick={navigateCustomize}
+                  >
+                    Customize now
+                  </Button>
+                )}
+              </div>
             </motion.div>
           </motion.div>
 
@@ -208,16 +236,6 @@ function ProductCard({
           </motion.div>
 
           <div className="flex flex-col items-end gap-2 shrink-0">
-            {isCustomizableBase && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full text-xs font-semibold px-5 h-9 border-border/80 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
-                onClick={navigateAction}
-              >
-                Customize now
-              </Button>
-            )}
             <span className="inline-flex items-center gap-1 rounded-full bg-section text-muted text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider border border-border/50">
               <Package className="w-3 h-3" />
               {item.productType}
