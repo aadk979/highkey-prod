@@ -35,7 +35,7 @@ function ProductCard({
   const rotateX = useTransform(springY, [0, 1], [4, -4]);
   const rotateY = useTransform(springX, [0, 1], [-4, 4]);
 
-  const isBuildable = item.productType === "base" && item.isCustomizable;
+  const isCustomizableBase = item.productType === "base" && item.isCustomizable;
   const lowStock =
     item.availableStock > 0 && item.availableStock <= 5;
   const outOfStock = item.availableStock <= 0;
@@ -43,11 +43,7 @@ function ProductCard({
   const navigate = () => router.push(productPath(item.id));
   const navigateAction = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isBuildable) {
-      router.push(`/build?product_id=${item.id}`);
-    } else {
-      navigate();
-    }
+    router.push(`/customize?product_id=${item.id}`);
   };
 
   return (
@@ -105,7 +101,7 @@ function ProductCard({
             <span className="rounded-full bg-white/90 backdrop-blur-sm px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground border border-border/60 shadow-sm">
               {String(index + 1).padStart(2, "0")}
             </span>
-            {isBuildable && (
+            {isCustomizableBase && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/15">
                 <Sparkles className="w-3 h-3" />
                 Custom
@@ -212,14 +208,16 @@ function ProductCard({
           </motion.div>
 
           <div className="flex flex-col items-end gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full text-xs font-semibold px-5 h-9 border-border/80 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
-              onClick={navigateAction}
-            >
-              {isBuildable ? "Build" : "View"}
-            </Button>
+            {isCustomizableBase && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs font-semibold px-5 h-9 border-border/80 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
+                onClick={navigateAction}
+              >
+                Customize now
+              </Button>
+            )}
             <span className="inline-flex items-center gap-1 rounded-full bg-section text-muted text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider border border-border/50">
               <Package className="w-3 h-3" />
               {item.productType}

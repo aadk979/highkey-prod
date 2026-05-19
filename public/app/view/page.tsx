@@ -399,14 +399,14 @@ export function ProductViewContent({
     );
   }
 
-  const isBuildable = product.productType === "base";
+  const isCustomizableBase = product.productType === "base" && product.isCustomizable;
   const inStock = product.availableStock > 0;
   const lowStock = inStock && product.availableStock <= 5;
 
   const addToBagButton = (
     <Button
       size="lg"
-      variant={isBuildable ? "outline" : "default"}
+      variant={isCustomizableBase ? "outline" : "default"}
       className="flex-1 w-full min-w-0 rounded-full h-14 text-sm sm:text-base font-semibold transition-all duration-300 px-2 sm:px-4"
       disabled={!inStock || isAddingToCart}
       onClick={handleAddToCart}
@@ -447,7 +447,7 @@ export function ProductViewContent({
 
   const purchaseActions = (
   <>
-    {isBuildable ? (
+    {isCustomizableBase ? (
       <>
         {addToBagButton}
         <Link href={`/customize?product_id=${product.id}`} className="flex-1 w-full min-w-0">
@@ -456,7 +456,7 @@ export function ProductViewContent({
             className="w-full rounded-full h-14 text-sm sm:text-base font-semibold shadow-multi group px-2 sm:px-4"
           >
             <Wand2 className="mr-1.5 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:rotate-12 shrink-0" />
-            <span className="truncate">Customize</span>
+            <span className="truncate">Customize now</span>
           </Button>
         </Link>
       </>
@@ -549,7 +549,7 @@ export function ProductViewContent({
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 border border-primary/15">
                 {product.productType}
               </span>
-              {isBuildable && (
+              {isCustomizableBase && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-section text-foreground text-[10px] font-bold uppercase tracking-wider px-3 py-1 border border-border">
                   <Sparkles className="w-3 h-3 text-primary" />
                   Customizable
@@ -604,7 +604,7 @@ export function ProductViewContent({
                 {
                   icon: Sparkles,
                   label: "Type",
-                  value: isBuildable
+                  value: isCustomizableBase
                     ? "Build your own"
                     : "Ready to ship",
                 },

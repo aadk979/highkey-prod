@@ -61,6 +61,8 @@ const BASE_DENIM_COLOURS = {
 const DEFAULT_BASE_DENIM_PRODUCT_ID = "d2fc9240-1937-427a-8196-60299093dfc0";
 const DEFAULT_BASE_DENIM_COLOUR =
   BASE_DENIM_COLOURS[DEFAULT_BASE_DENIM_PRODUCT_ID];
+const NOT_CUSTOMIZABLE_MESSAGE =
+  "This product is not customizable. Redirecting to shop.";
 
 function getBaseDenimColour(productId: string) {
   const colour =
@@ -680,13 +682,25 @@ function CustomizeContent() {
     if (!productId) {
       return;
     }
-    
-    Promise.all([
-      getProduct(productId),
-      listProducts({ type: "accessory", limit: 100, page: 1 }),
-      cartItemId ? cartEngine.getAllItems() : Promise.resolve([])
-    ])
-      .then(async ([baseProduct, accResponse, cartItems]) => {
+
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+
+    getProduct(productId)
+      .then(async (baseProduct) => {
+        if (baseProduct.productType !== "base" || !baseProduct.isCustomizable) {
+          setProduct(baseProduct);
+          setError(NOT_CUSTOMIZABLE_MESSAGE);
+          redirectTimer = setTimeout(() => {
+            router.replace("/shop");
+          }, 1600);
+          return;
+        }
+
+        const [accResponse, cartItems] = await Promise.all([
+          listProducts({ type: "accessory", limit: 100, page: 1 }),
+          cartItemId ? cartEngine.getAllItems() : Promise.resolve([]),
+        ]);
+
         setProduct(baseProduct);
         const activeAccs = accResponse.data.filter((a) => a.isActive);
         setAccessories(activeAccs);
@@ -723,7 +737,13 @@ function CustomizeContent() {
         setError(err instanceof StorefrontApiError ? err.message : "Failed to load data.")
       )
       .finally(() => setLoading(false));
-  }, [productId, cartItemId]);
+
+    return () => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+    };
+  }, [productId, cartItemId, router]);
 
   // Handle open dialog
   const handleOpenDialog = () => {
@@ -789,7 +809,14 @@ function CustomizeContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-background p-8 text-center">
         <AlertCircle className="w-12 h-12 text-destructive" />
-        <h2 className="text-3xl font-heading font-light">Product not found</h2>
+        <h2 className="text-3xl font-heading font-light">
+          {error === NOT_CUSTOMIZABLE_MESSAGE
+            ? "Product not customizable"
+            : "Product not found"}
+        </h2>
+        {error && (
+          <p className="max-w-md text-sm text-muted-foreground">{error}</p>
+        )}
         <Link href="/shop"><Button variant="outline" className="rounded-full"><ArrowLeft className="mr-2 w-4 h-4" /> Back to shop</Button></Link>
       </div>
     );
