@@ -32,7 +32,7 @@ import { getProduct } from "@/lib/api/storefront";
 import { formatMoney } from "@/lib/format";
 import type { Product } from "@/lib/types/storefront";
 import { notifyCartUpdated } from "@/hooks/useCartCount";
-import { StorefrontApiError } from "@/lib/api/client";
+import { replaceImageOrigins, StorefrontApiError } from "@/lib/api/client";
 
 function ImageGallery({
   product,
@@ -178,7 +178,7 @@ function ImageGallery({
                     alt={`${product.name} - Image ${activeImageIndex + 1}`}
                     fill
                     className="object-contain p-8 sm:p-10"
-                    priority={activeImageIndex === 0}
+                    preload={activeImageIndex === 0}
                     unoptimized
                   />
                 </motion.div>
@@ -287,7 +287,11 @@ export function ProductViewContent({
   productId?: string;
   initialProduct?: Product | null;
 }) {
-  const [product, setProduct] = useState<Product | null>(initialProduct);
+  const [product, setProduct] = useState<Product | null>(() =>
+    initialProduct && typeof window !== "undefined"
+      ? (replaceImageOrigins(initialProduct, window.origin) as Product)
+      : initialProduct
+  );
   const [loading, setLoading] = useState(!initialProduct);
   const [error, setError] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -302,7 +306,7 @@ export function ProductViewContent({
   useEffect(() => {
     async function fetchData() {
       if (initialProduct && productId === initialProduct.id) {
-        setProduct(initialProduct);
+        setProduct(replaceImageOrigins(initialProduct, window.origin) as Product);
         setLoading(false);
         return;
       }

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { replaceImageOrigins } from "@/lib/api/client";
 import { getProduct } from "@/lib/api/storefront";
 import {
   breadcrumbJsonLd,
@@ -17,10 +19,31 @@ type ProductPageProps = {
   params: Promise<{ id: string }>;
 };
 
-async function getProductSafely(id: string): Promise<Product | null> {
+async function getRequestOrigin() {
+  const headersList = await headers();
+  const host =
+    headersList.get("x-forwarded-host") ?? headersList.get("host");
+
+  if (!host) return undefined;
+
+  const protocol =
+    headersList.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+  const hostname = host.split(",")[0]?.trim();
+
+  return hostname ? `${protocol}://${hostname}` : undefined;
+}
+
+async function getProductSafely(
+  id: string,
+  origin?: string
+): Promise<Product | null> {
   try {
     const product = await getProduct(id);
-    return product.isActive ? product : null;
+    if (!product.isActive) return null;
+
+    return origin
+      ? (replaceImageOrigins(product, origin) as Product)
+      : product;
   } catch {
     return null;
   }
@@ -30,7 +53,8 @@ export async function generateMetadata(
   { params }: ProductPageProps
 ): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProductSafely(id);
+  const origin = await getRequestOrigin();
+  const product = await getProductSafely(id, origin);
 
   if (!product) {
     return buildMetadata({
@@ -57,7 +81,8 @@ export async function generateMetadata(
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
-  const product = await getProductSafely(id);
+  const origin = await getRequestOrigin();
+  const product = await getProductSafely(id, origin);
 
   return (
     <>

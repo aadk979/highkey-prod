@@ -18,12 +18,28 @@ export class StorefrontApiError extends Error {
   }
 }
 
-function replaceImageOrigins(obj: unknown): unknown {
+function currentWindowOrigin() {
+  return typeof window === "undefined" ? undefined : window.origin;
+}
+
+export function replaceImageUrlOrigin(url: string, origin: string) {
+  try {
+    const parsed = new URL(url);
+    return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return url.startsWith("/") ? `${origin}${url}` : url;
+  }
+}
+
+export function replaceImageOrigins(
+  obj: unknown,
+  origin = currentWindowOrigin()
+): unknown {
   if (!obj || typeof obj !== "object") return obj;
-  if (typeof window === "undefined") return obj;
+  if (!origin) return obj;
 
   if (Array.isArray(obj)) {
-    return obj.map(replaceImageOrigins);
+    return obj.map((item) => replaceImageOrigins(item, origin));
   }
 
   const newObj: Record<string, unknown> = {
@@ -32,23 +48,11 @@ function replaceImageOrigins(obj: unknown): unknown {
   for (const key in newObj) {
     const val = newObj[key];
     if ((key === "imageIds" || key === "customisationImageIds") && Array.isArray(val)) {
-      newObj[key] = val.map((url: string) => {
-        try {
-          const u = new URL(url);
-          return window.origin + u.pathname + u.search;
-        } catch {
-          return url.startsWith("/") ? window.origin + url : url;
-        }
-      });
+      newObj[key] = val.map((url: string) => replaceImageUrlOrigin(url, origin));
     } else if (key === "url" && typeof val === "string" && (val.includes("/uploads/") || val.startsWith("http"))) {
-      try {
-        const u = new URL(val);
-        newObj[key] = window.origin + u.pathname + u.search;
-      } catch {
-        if (val.startsWith("/")) newObj[key] = window.origin + val;
-      }
+      newObj[key] = replaceImageUrlOrigin(val, origin);
     } else if (typeof val === "object" && val !== null) {
-      newObj[key] = replaceImageOrigins(val);
+      newObj[key] = replaceImageOrigins(val, origin);
     }
   }
   return newObj;
