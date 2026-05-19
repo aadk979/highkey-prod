@@ -1,14 +1,52 @@
 "use client"
 
-import React, { useRef } from "react"
+import React, { useRef, useState } from "react"
 import { motion, useInView } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowDown } from "lucide-react"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo"
 
+const DENIM_OPTIONS = [
+  { id: "d2fc9240-1937-427a-8196-60299093dfc0", hex: "#8F9DB5", name: "Cloudy sky blue" },
+  { id: "d6279375-5e34-4849-ad9c-696bc990fd2e", hex: "#6A7CA4", name: "Muted ocean blue" },
+  { id: "dfd20cf7-3c86-42b1-80a3-dc6f58f9e6a9", hex: "#4B5E86", name: "Deep slate blue" },
+  { id: "de260854-4e7e-4fc8-adf0-98a1e0bb2312", hex: "#34384C", name: "Dark stormy blue" },
+  { id: "1001eb87-8f3b-4e7f-83c8-ca800567d53a", hex: "#26273B", name: "Midnight blue" },
+]
+
+const MATERIAL_IMAGES = [
+  {
+    src: "https://highkeychains.com/uploads/products/d2fc9240-1937-427a-8196-60299093dfc0/6b90c012-5b53-4788-b078-489f9f32ebcd.jpeg",
+    alt: "Light wash reclaimed denim keychain base",
+  },
+  {
+    src: "https://highkeychains.com/uploads/products/dfd20cf7-3c86-42b1-80a3-dc6f58f9e6a9/ca3ddf1c-8553-48bc-b745-3311e3c65b58.jpeg",
+    alt: "Classic blue reclaimed denim keychain base",
+  },
+  {
+    src: "https://highkeychains.com/uploads/products/1001eb87-8f3b-4e7f-83c8-ca800567d53a/4a603bb0-2ecd-4a65-87a0-b94e3718df4d.jpeg",
+    alt: "Midnight wash reclaimed denim keychain base",
+  },
+]
+
+function denimTextureStyle(hex: string): React.CSSProperties {
+  return {
+    backgroundColor: hex,
+    backgroundImage: [
+      "linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.1))",
+      "repeating-linear-gradient(7deg, rgba(255,255,255,0.2) 0 1px, transparent 1px 4px)",
+      "repeating-linear-gradient(97deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 5px)",
+      "repeating-linear-gradient(-4deg, transparent 0 13px, rgba(255,255,255,0.2) 13px 14px, transparent 14px 21px)",
+    ].join(", "),
+  }
+}
+
 export default function LandingPage() {
+  const [selectedDenim, setSelectedDenim] = useState(DENIM_OPTIONS[2])
+
   return (
     <div className="flex flex-col min-h-screen">
       <JsonLd
@@ -111,19 +149,34 @@ export default function LandingPage() {
       {/* Product Showcase Section — "The Base" */}
       <section className="py-24 px-6 bg-background">
         <div className="max-w-[1000px] mx-auto grid grid-cols-1 md:grid-cols-10 gap-12 items-center bg-surface p-8 md:p-12 rounded-[12px] border border-border shadow-multi relative overflow-hidden">
-          <div className="md:col-span-6 relative aspect-[5/3] flex items-center justify-center">
+          <div className="md:col-span-6 relative flex flex-col items-center justify-center gap-7 py-4">
              <motion.div 
                whileHover={{ rotate: 1, scale: 1.02 }}
-               className="w-[70%] aspect-[12/5] rounded-[24px] shadow-hover border-2 border-dashed border-border flex items-center justify-center overflow-hidden -rotate-3"
+               className="relative w-full max-w-[560px] aspect-[11/4] rounded-[22px] shadow-hover border border-white/30 flex items-center justify-center overflow-hidden -rotate-2"
+               style={denimTextureStyle(selectedDenim.hex)}
              >
-               <div className="absolute inset-0 bg-opacity-80 bg-[#1d3557] mix-blend-multiply transition-colors duration-500 z-10" />
-               <img src="/example_denim.jpeg" alt="Close-up texture of reclaimed denim used for Highkey keychains" className="absolute inset-0 w-full h-full object-cover grayscale opacity-80" />
-               <span className="relative z-20 font-heading text-white text-xl uppercase tracking-widest mix-blend-overlay">The Canvas</span>
+               <div className="absolute inset-[10%] rounded-[16px] border border-white/20 border-dashed" />
+               <span className="relative z-10 font-heading text-white/85 text-lg md:text-xl uppercase tracking-widest mix-blend-overlay">110mm x 40mm</span>
              </motion.div>
-             <div className="absolute -bottom-8 flex gap-3 shadow-sm bg-white p-2 border border-border rounded-full">
-                <button className="w-8 h-8 rounded-full bg-[#1d3557] ring-2 ring-primary ring-offset-2 transition-transform hover:scale-110" />
-                <button className="w-8 h-8 rounded-full bg-[#e0e1dd] hover:scale-110 transition-transform" />
-                <button className="w-8 h-8 rounded-full bg-[#14213d] hover:scale-110 transition-transform" />
+             <div className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {DENIM_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSelectedDenim(option)}
+                    className="min-w-0 text-left transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-surface rounded-[10px]"
+                    aria-pressed={selectedDenim.id === option.id}
+                    aria-label={`Preview ${option.name} denim`}
+                  >
+                    <div
+                      className={`aspect-[11/4] rounded-[8px] border shadow-sm transition-all ${selectedDenim.id === option.id ? "border-primary ring-2 ring-primary/20" : "border-white/40"}`}
+                      style={denimTextureStyle(option.hex)}
+                    />
+                    <p className="mt-2 min-h-[2rem] text-center text-[11px] font-bold uppercase leading-tight tracking-[0.1em] text-muted">
+                      {option.name}
+                    </p>
+                  </button>
+                ))}
              </div>
           </div>
           <div className="md:col-span-4 flex flex-col items-start text-left">
@@ -161,15 +214,11 @@ export default function LandingPage() {
             We don&apos;t manufacture fabric. We hunt for it. Each cut is hand-selected from discarded vintage denim, washed, sanitized, and reinforced to outlast the keys it holds.
           </p>
           <div className="grid grid-cols-3 gap-4 w-full mb-16">
-            <div className="h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
-               <img src="/example_denim.jpeg" alt="Dark wash reclaimed denim sample for a keychain base" className="w-full h-full object-cover filter brightness-75" />
-            </div>
-            <div className="h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
-               <img src="/example_denim.jpeg" alt="Reclaimed denim fabric variation prepared for hand cutting" className="w-full h-full object-cover grayscale contrast-125 brightness-50" />
-            </div>
-            <div className="h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
-               <img src="/example_denim.jpeg" alt="Washed denim texture used in Highkey upcycled accessories" className="w-full h-full object-cover filter contrast-[1.1] sepia-[0.2]" />
-            </div>
+            {MATERIAL_IMAGES.map((image) => (
+              <div key={image.src} className="relative h-[200px] rounded-lg border-2 border-[#1A1A1A] overflow-hidden bg-[#1A1A1A]">
+                <Image src={image.src} alt={image.alt} fill className="object-cover" unoptimized />
+              </div>
+            ))}
           </div>
           <div className="w-[80px] h-[1px] bg-primary" />
         </div>

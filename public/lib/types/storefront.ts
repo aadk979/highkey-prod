@@ -107,7 +107,7 @@ export type CheckoutQuoteRequest = {
   customer: CheckoutCustomer;
   customerNote?: string;
   promotionId?: string | null;
-  customizationMeta?: Record<string, string | number | boolean>;
+  customizationMeta?: string;
   fulfillment: CheckoutFulfillmentQuote;
   items: CheckoutItem[];
 };
@@ -117,7 +117,7 @@ export type CheckoutSessionRequest = {
   promotionId?: string | null;
   customer: CheckoutCustomer;
   fulfillment: CheckoutFulfillmentSession;
-  customizationMeta?: Record<string, string | number | boolean>;
+  customizationMeta?: string;
   customerNote?: string | null;
 };
 
@@ -224,7 +224,7 @@ export type Order = {
   refundedAmountCents: number;
   currencyCode: string;
   promotionId: string | null;
-  customizationMeta: Record<string, unknown> | null;
+  customizationMeta: string | Record<string, unknown> | null;
   orderStatus: OrderStatus;
   paymentStatus: PaymentStatus;
   customerNote: string | null;

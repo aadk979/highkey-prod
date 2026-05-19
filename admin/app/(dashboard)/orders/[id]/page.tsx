@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState, type ElementType } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Package,
@@ -12,6 +13,7 @@ import {
   Check,
   Sparkles,
   X,
+  FlipHorizontal,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import {
@@ -35,6 +37,13 @@ import {
 } from "@/components/ui/table";
 import { ordersApi } from "@/lib/api/orders";
 import { productsApi } from "@/lib/api/products";
+import {
+  CUSTOMIZATION_SIDES,
+  type CustomizationMeta,
+  type CustomizationSide,
+  decodeCustomizationMeta,
+  otherCustomizationSide,
+} from "@/lib/customizationSchema";
 import { formatCents, formatDate, formatLabel } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types/order";
 
@@ -50,7 +59,7 @@ const STATUS_CONFIG: Partial<
     OrderStatus,
     {
       label: string;
-      icon: any;
+      icon: ElementType;
       variant?: "primary" | "secondary" | "tertiary";
     }
   >
@@ -73,6 +82,50 @@ const STATUS_CONFIG: Partial<
     variant: "primary",
   },
 };
+
+type ViewerPatch = {
+  id: string;
+  name: string;
+  side: CustomizationSide;
+  layer: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  imageUrl: string | null;
+  rot: number;
+};
+
+function buildViewerPatches(
+  meta: CustomizationMeta,
+  orderItems: NonNullable<Order["items"]>,
+): Record<CustomizationSide, ViewerPatch[]> {
+  return CUSTOMIZATION_SIDES.reduce(
+    (acc, side) => {
+      acc[side] = meta.sides[side].patches.map((patch) => {
+        const matchedItem = orderItems.find(
+          (item) => item.productId === patch.product_id,
+        );
+        const matchedProduct = matchedItem?.product;
+
+        return {
+          id: patch.product_id,
+          name: matchedItem?.snapshotName ?? "Patch",
+          side,
+          layer: patch.layer,
+          x: patch.x_mm,
+          y: patch.y_mm,
+          w: Math.max(1, patch.width_mm),
+          h: Math.max(1, patch.height_mm),
+          imageUrl: matchedProduct?.imageIds?.[0] ?? null,
+          rot: patch.rotation_deg,
+        };
+      });
+      return acc;
+    },
+    {} as Record<CustomizationSide, ViewerPatch[]>,
+  );
+}
 
 export default function OrderDetailPage({
   params,
@@ -98,6 +151,8 @@ export default function OrderDetailPage({
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
+  const [activeCustomizationSide, setActiveCustomizationSide] =
+    useState<CustomizationSide>("front");
   const [customisationUrls, setCustomisationUrls] = useState<
     Record<string, string>
   >({});
@@ -112,14 +167,13 @@ export default function OrderDetailPage({
   }, [id]);
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   useEffect(() => {
     if (
       order &&
-      order.customizationMeta &&
-      (order.customizationMeta as Record<string, any>).is_customised &&
+      decodeCustomizationMeta(order.customizationMeta)?.is_customised &&
       order.items
     ) {
       // Find all accessory products in order items
@@ -146,7 +200,7 @@ export default function OrderDetailPage({
               if (templateImg) {
                 templateUrls[prod.id] = templateImg.url;
               }
-            } catch (e) {
+            } catch {
               // Ignore errors
             }
           }
@@ -222,6 +276,16 @@ export default function OrderDetailPage({
     );
   }
 
+  const customizationMeta = decodeCustomizationMeta(order.customizationMeta);
+  const rawCustomizationMeta = order.customizationMeta;
+  const hasRawCustomizationMeta =
+    rawCustomizationMeta !== null && rawCustomizationMeta !== undefined;
+  const isCustomizationMetaCorrupt =
+    hasRawCustomizationMeta && customizationMeta === null;
+  const hasCustomization = Boolean(
+    customizationMeta?.is_customised && order.items,
+  );
+
   return (
     <AppShell title={`Order #${order.orderNumber}`}>
       <Link
@@ -273,14 +337,18 @@ export default function OrderDetailPage({
             Refund
           </Button>
         ) : null}
-        {order.customizationMeta &&
-        (order.customizationMeta as Record<string, any>).is_customised ? (
+        {hasCustomization || isCustomizationMetaCorrupt ? (
           <Button
             variant="secondary"
-            onClick={() => setShowCustomizationModal(true)}
+            onClick={() => {
+              setActiveCustomizationSide("front");
+              setShowCustomizationModal(true);
+            }}
           >
             <Sparkles className="mr-2 size-4 fill-amber-500/20 text-amber-500" />
-            View Customization Design
+            {isCustomizationMetaCorrupt
+              ? "View Customization Data"
+              : "View Customization Design"}
           </Button>
         ) : null}
       </div>
@@ -1043,47 +1111,65 @@ export default function OrderDetailPage({
       {/* ── Full-Screen Customization Design Visualizer Overlay ── */}
       {showCustomizationModal &&
         (() => {
-          const meta = order.customizationMeta as Record<string, any> | null;
-          const patches = [];
-          if (meta && meta.is_customised && order.items) {
-            for (let i = 0; i < 25; i++) {
-              const patchId = meta[`patch_${i}_id`];
-              if (!patchId) continue;
-              const px = Number(meta[`patch_${i}_x`] ?? 0);
-              const py = Number(meta[`patch_${i}_y`] ?? 0);
-              const prot = Number(meta[`patch_${i}_rot`] ?? 0);
+          if (!customizationMeta || !order.items) {
+            if (!hasRawCustomizationMeta) return null;
 
-              const matchedItem = order.items.find(
-                (item) => item.productId === patchId,
-              );
-              const matchedProduct = matchedItem?.product;
-              const name = matchedItem?.snapshotName ?? "Patch";
-              const imageUrl = matchedProduct?.imageIds?.[0] ?? null;
+            const rawValue =
+              typeof rawCustomizationMeta === "string"
+                ? rawCustomizationMeta
+                : JSON.stringify(rawCustomizationMeta, null, 2);
 
-              const w = Math.max(
-                1,
-                matchedProduct?.dimensions?.maxWidthMm ?? 10,
-              );
-              const h = Math.max(
-                1,
-                matchedProduct?.dimensions?.maxHeightMm ?? 10,
-              );
+            return (
+              <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-white animate-in fade-in duration-200">
+                <header className="relative z-50 flex h-16 shrink-0 items-center justify-between border-b border-[#e2ddd8]/60 bg-white/85 px-6 shadow-sm backdrop-blur-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f7f5f2]">
+                      <Sparkles className="h-5 w-5 fill-[#e8132a]/10 text-[#e8132a]" />
+                    </div>
+                    <div>
+                      <h1 className="truncate font-heading text-lg font-bold text-[#0d0d0d]">
+                        Corrupt Customization Data
+                      </h1>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#8c8278]">
+                        Order #{order.orderNumber} &middot; {order.customerName}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowCustomizationModal(false)}
+                    className="rounded-full border border-[#e2ddd8] bg-white px-5 shadow-hover hover:bg-[#f7f5f2]"
+                  >
+                    <X className="mr-2 size-4" />
+                    Close Viewer
+                  </Button>
+                </header>
 
-              patches.push({
-                id: patchId,
-                name,
-                x: px,
-                y: py,
-                w,
-                h,
-                imageUrl,
-                rot: prot,
-              });
-            }
+                <div className="flex-1 overflow-auto bg-[#f7f5f2] p-8">
+                  <div className="mx-auto max-w-4xl rounded-2xl border border-[#e2ddd8] bg-white p-6 shadow-sm">
+                    <p className="mb-4 text-sm font-semibold text-[#e8132a]">
+                      This order&apos;s customization metadata could not be decoded.
+                    </p>
+                    <p className="mb-4 text-sm text-[#8c8278]">
+                      Raw backend value:
+                    </p>
+                    <pre className="max-h-[65vh] overflow-auto whitespace-pre-wrap break-all rounded-xl bg-[#0d0d0d] p-4 text-xs text-white">
+                      {rawValue}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            );
           }
 
-          const canvasW = Number(meta?.canvas_width_mm ?? 50);
-          const canvasH = Number(meta?.canvas_height_mm ?? 50);
+          const patchesBySide = buildViewerPatches(
+            customizationMeta,
+            order.items,
+          );
+          const patches = patchesBySide[activeCustomizationSide];
+          const inactiveSide = otherCustomizationSide(activeCustomizationSide);
+          const canvasW = customizationMeta.canvas.width_mm;
+          const canvasH = customizationMeta.canvas.height_mm;
           const PADDING = 20;
           const vBoxX = -PADDING;
           const vBoxY = -PADDING;
@@ -1107,14 +1193,24 @@ export default function OrderDetailPage({
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowCustomizationModal(false)}
-                  className="rounded-full border border-[#e2ddd8] bg-white px-5 shadow-hover hover:bg-[#f7f5f2]"
-                >
-                  <X className="mr-2 size-4" />
-                  Close Viewer
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setActiveCustomizationSide(inactiveSide)}
+                    className="rounded-full border border-[#e2ddd8] bg-white px-5 shadow-hover hover:bg-[#f7f5f2]"
+                  >
+                    <FlipHorizontal className="mr-2 size-4" />
+                    Flip to {inactiveSide}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowCustomizationModal(false)}
+                    className="rounded-full border border-[#e2ddd8] bg-white px-5 shadow-hover hover:bg-[#f7f5f2]"
+                  >
+                    <X className="mr-2 size-4" />
+                    Close Viewer
+                  </Button>
+                </div>
               </header>
 
               {/* Main Visualizer Area */}
@@ -1124,7 +1220,29 @@ export default function OrderDetailPage({
                   className="relative flex flex-1 items-center justify-center overflow-hidden"
                   style={{ backgroundColor: "#f0ece6" }}
                 >
-                  <div className="flex h-full max-h-[70vh] w-full max-w-lg items-center justify-center">
+                  <div
+                    className="flex h-full max-h-[70vh] w-full max-w-lg items-center justify-center"
+                    style={{ perspective: "1400px" }}
+                  >
+                    <div
+                      className="h-full w-full transition-transform duration-500"
+                      style={{
+                        transformStyle: "preserve-3d",
+                        transform:
+                          activeCustomizationSide === "front"
+                            ? "rotateY(0deg)"
+                            : "rotateY(180deg)",
+                      }}
+                    >
+                      <div
+                        className="h-full w-full"
+                        style={{
+                          transform:
+                            activeCustomizationSide === "back"
+                              ? "rotateY(180deg)"
+                              : "none",
+                        }}
+                      >
                     <svg
                       viewBox={`${vBoxX} ${vBoxY} ${vBoxW} ${vBoxH}`}
                       className="h-full w-full touch-none object-contain p-4 md:p-12"
@@ -1227,7 +1345,7 @@ export default function OrderDetailPage({
 
                         return (
                           <g
-                            key={`${patch.id}-${idx}`}
+                            key={`${patch.side}-${patch.id}-${patch.layer}-${idx}`}
                             transform={`rotate(${patch.rot || 0}, ${patch.x}, ${patch.y})`}
                           >
                             {/* Invisible hit area */}
@@ -1282,6 +1400,8 @@ export default function OrderDetailPage({
                         );
                       })}
                     </svg>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Overlay info */}
@@ -1296,10 +1416,21 @@ export default function OrderDetailPage({
                     </div>
                     <div className="rounded-2xl border border-[#e2ddd8] bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md">
                       <p className="mb-0.5 text-xs font-bold uppercase tracking-wider text-[#8c8278]">
+                        Current Side
+                      </p>
+                      <p className="font-mono text-sm font-semibold capitalize text-[#0d0d0d]">
+                        {activeCustomizationSide}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[#e2ddd8] bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md">
+                      <p className="mb-0.5 text-xs font-bold uppercase tracking-wider text-[#8c8278]">
                         Patches Placed
                       </p>
                       <p className="font-mono text-sm font-semibold text-[#0d0d0d]">
-                        {patches.length} Placed
+                        {customizationMeta.patch_count} total
+                      </p>
+                      <p className="mt-1 text-[10px] uppercase tracking-wider text-[#8c8278]">
+                        {patches.length} on {activeCustomizationSide}
                       </p>
                     </div>
                   </div>
@@ -1311,25 +1442,48 @@ export default function OrderDetailPage({
                     Design Breakdown
                   </h3>
                   <p className="mb-4 text-xs leading-relaxed text-[#8c8278]">
-                    Exact placements and coordinates of each patch accessory for
-                    key assembly.
+                    Schema v{customizationMeta.customization_schema_version} placements for the {activeCustomizationSide} side.
                   </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CUSTOMIZATION_SIDES.map((side) => (
+                      <button
+                        key={side}
+                        type="button"
+                        onClick={() => setActiveCustomizationSide(side)}
+                        className={`rounded-full border px-3 py-2 text-xs font-bold capitalize transition-colors ${
+                          side === activeCustomizationSide
+                            ? "border-[#e8132a] bg-[#e8132a] text-white"
+                            : "border-[#e2ddd8] bg-white text-[#8c8278] hover:text-[#0d0d0d]"
+                        }`}
+                      >
+                        {side} ({patchesBySide[side].length})
+                      </button>
+                    ))}
+                  </div>
 
                   <div className="flex flex-col gap-3">
-                    {patches.map((patch, idx) => {
+                    {patches.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-[#e2ddd8] bg-white p-6 text-center text-xs font-bold uppercase tracking-wider text-[#8c8278]">
+                        No patches on this side
+                      </div>
+                    ) : (
+                    patches.map((patch, idx) => {
                       const customisationImg = customisationUrls[patch.id];
                       const imgHref = customisationImg || patch.imageUrl;
 
                       return (
                         <div
-                          key={idx}
+                          key={`${patch.side}-${patch.id}-${patch.layer}-${idx}`}
                           className="flex items-center gap-3 rounded-2xl border border-[#e2ddd8]/80 bg-white p-3 shadow-sm transition-all duration-300 hover:border-[#e8132a]/40"
                         >
                           {imgHref ? (
-                            <img
+                            <Image
                               src={imgHref}
                               alt={patch.name}
+                              width={48}
+                              height={48}
                               className="h-12 w-12 rounded border border-[#e2ddd8] bg-[#f7f5f2] object-contain p-1"
+                              unoptimized
                             />
                           ) : (
                             <div className="flex h-12 w-12 items-center justify-center rounded border border-[#e2ddd8] bg-[#f7f5f2]">
@@ -1350,6 +1504,9 @@ export default function OrderDetailPage({
                               <span>
                                 Y: <b>{patch.y}mm</b>
                               </span>
+                              <span>
+                                Layer: <b>{patch.layer}</b>
+                              </span>
                               {patch.rot !== 0 && (
                                 <span>
                                   Rot: <b>{patch.rot}&deg;</b>
@@ -1359,7 +1516,7 @@ export default function OrderDetailPage({
                           </div>
                         </div>
                       );
-                    })}
+                    }))}
                   </div>
                 </aside>
               </div>

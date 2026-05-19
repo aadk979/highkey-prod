@@ -10,11 +10,11 @@ import {
   AlertCircle,
   Package,
   Wand2,
-  Plus,
   X,
   Check,
   Search,
   Monitor,
+  FlipHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getProduct, listProducts, getCustomisationTemplates } from "@/lib/api/storefront";
@@ -23,12 +23,24 @@ import type { Product } from "@/lib/types/storefront";
 import { formatMoney } from "@/lib/format";
 import { productPath } from "@/lib/seo";
 import { cartEngine } from "@/app/utils/cartEngine";
+import {
+  CUSTOMIZATION_META_SCHEMA_VERSION,
+  CUSTOMIZATION_SIDES,
+  type CustomizationMeta,
+  type CustomizationMetaPatch,
+  type CustomizationSide,
+  decodeCustomizationMeta,
+  encodeCustomizationMeta,
+  isCustomizationMetaV2,
+  otherCustomizationSide,
+} from "@/lib/customizationSchema";
 
 // --- Types ---
 
 type PlacedPatch = {
   id: string; // unique instance ID
   product: Product;
+  side: CustomizationSide;
   x: number; // center X in mm
   y: number; // center Y in mm
   w: number; // width in mm
@@ -38,11 +50,116 @@ type PlacedPatch = {
 
 // --- Helpers ---
 
+const BASE_DENIM_COLOURS = {
+  "d2fc9240-1937-427a-8196-60299093dfc0": "#8F9DB5",
+  "d6279375-5e34-4849-ad9c-696bc990fd2e": "#6A7CA4",
+  "dfd20cf7-3c86-42b1-80a3-dc6f58f9e6a9": "#4B5E86",
+  "de260854-4e7e-4fc8-adf0-98a1e0bb2312": "#34384C",
+  "1001eb87-8f3b-4e7f-83c8-ca800567d53a": "#26273B",
+} as const;
+
+const DEFAULT_BASE_DENIM_PRODUCT_ID = "d2fc9240-1937-427a-8196-60299093dfc0";
+const DEFAULT_BASE_DENIM_COLOUR =
+  BASE_DENIM_COLOURS[DEFAULT_BASE_DENIM_PRODUCT_ID];
+
+function getBaseDenimColour(productId: string) {
+  const colour =
+    BASE_DENIM_COLOURS[productId as keyof typeof BASE_DENIM_COLOURS];
+
+  return {
+    hex: colour ?? DEFAULT_BASE_DENIM_COLOUR,
+    isFallback: !colour,
+  };
+}
+
 function getPatchDims(p: Product) {
   return {
     w: Math.max(1, p.dimensions?.maxWidthMm ?? 10),
     h: Math.max(1, p.dimensions?.maxHeightMm ?? 10),
   };
+}
+
+function buildCustomizationMeta(product: Product, placedPatches: PlacedPatch[]): CustomizationMeta {
+  const sides = CUSTOMIZATION_SIDES.reduce(
+    (acc, side) => {
+      acc[side] = {
+        patches: placedPatches
+          .filter((patch) => patch.side === side)
+          .map((patch, index) => ({
+            product_id: patch.product.id,
+            x_mm: Math.round(patch.x),
+            y_mm: Math.round(patch.y),
+            width_mm: Math.round(patch.w),
+            height_mm: Math.round(patch.h),
+            rotation_deg: patch.rot || 0,
+            layer: index,
+          })),
+      };
+      return acc;
+    },
+    {} as Record<CustomizationSide, { patches: CustomizationMetaPatch[] }>
+  );
+
+  return {
+    customization_schema_version: CUSTOMIZATION_META_SCHEMA_VERSION,
+    canvas: {
+      width_mm: product.dimensions?.maxWidthMm ?? 0,
+      height_mm: product.dimensions?.maxHeightMm ?? 0,
+    },
+    is_customised: placedPatches.length > 0,
+    patch_count: placedPatches.length,
+    sides,
+  };
+}
+
+function restorePatchesFromMeta(
+  rawMeta: unknown,
+  accessories: Product[]
+): { patches: PlacedPatch[]; selectedIds: Set<string> } {
+  const patches: PlacedPatch[] = [];
+  const selectedIds = new Set<string>();
+  const meta = decodeCustomizationMeta(rawMeta);
+
+  if (!meta || !isCustomizationMetaV2(meta)) {
+    return { patches, selectedIds };
+  }
+
+  const sides = meta.sides as Partial<
+    Record<CustomizationSide, { patches?: unknown[] }>
+  > | null;
+
+  if (!sides || typeof sides !== "object") {
+    return { patches, selectedIds };
+  }
+
+  for (const side of CUSTOMIZATION_SIDES) {
+    const sidePatches = sides[side]?.patches;
+    if (!Array.isArray(sidePatches)) continue;
+
+    sidePatches.forEach((rawPatch) => {
+      if (!rawPatch || typeof rawPatch !== "object") return;
+      const patchMeta = rawPatch as Record<string, unknown>;
+      const productId = patchMeta.product_id;
+      if (typeof productId !== "string") return;
+
+      const product = accessories.find((accessory) => accessory.id === productId);
+      if (!product) return;
+
+      patches.push({
+        id: crypto.randomUUID(),
+        product,
+        side,
+        x: Number(patchMeta.x_mm ?? 0),
+        y: Number(patchMeta.y_mm ?? 0),
+        w: Number(patchMeta.width_mm ?? getPatchDims(product).w),
+        h: Number(patchMeta.height_mm ?? getPatchDims(product).h),
+        rot: Number(patchMeta.rotation_deg ?? 0),
+      });
+      selectedIds.add(productId);
+    });
+  }
+
+  return { patches, selectedIds };
 }
 
 function isValidPlacement(
@@ -91,6 +208,8 @@ function ProductCanvas({
   setPlacedPatches,
   onPlacementError,
   maxPatchesLimit,
+  activeSide,
+  baseColourHex,
   customisationUrls = {},
 }: {
   product: Product;
@@ -98,6 +217,8 @@ function ProductCanvas({
   setPlacedPatches: React.Dispatch<React.SetStateAction<PlacedPatch[]>>;
   onPlacementError: (msg: string) => void;
   maxPatchesLimit: number;
+  activeSide: CustomizationSide;
+  baseColourHex: string;
   customisationUrls?: Record<string, string>;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -105,6 +226,7 @@ function ProductCanvas({
   const [selectedPatchId, setSelectedPatchId] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState<number>(1);
   const dragState = useRef({ id: null as string | null, offsetX: 0, offsetY: 0 });
+  const visiblePatches = placedPatches.filter((patch) => patch.side === activeSide);
 
   const dims = product.dimensions;
   const maxW = dims?.maxWidthMm ?? 0;
@@ -125,6 +247,9 @@ function ProductCanvas({
   const MUTED = "var(--color-muted)";
   const BG = "var(--color-background)";
   const FG = "var(--color-foreground)";
+  const denimClipId = "customize-base-denim-clip";
+  const denimWeaveId = "customize-base-denim-weave";
+  const denimSlubId = "customize-base-denim-slub";
 
   // HTML5 Drop Handler (for dropping from the dock)
   const handleDrop = (e: React.DragEvent) => {
@@ -156,12 +281,13 @@ function ProductCanvas({
       cx = Math.max(0, Math.min(maxW, cx));
       cy = Math.max(0, Math.min(maxH, cy));
 
-      if (isValidPlacement(cx, cy, w, h, maxW, maxH, placedPatches)) {
+      if (isValidPlacement(cx, cy, w, h, maxW, maxH, visiblePatches)) {
         setPlacedPatches((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             product: data.product,
+            side: activeSide,
             x: cx,
             y: cy,
             w,
@@ -172,7 +298,7 @@ function ProductCanvas({
       } else {
         onPlacementError("Invalid placement! Patches cannot overlap.");
       }
-    } catch (err) {
+    } catch {
       // ignore
     }
   };
@@ -205,7 +331,7 @@ function ProductCanvas({
     pt.y = e.clientY;
     const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
 
-    const patch = placedPatches.find((p) => p.id === draggingId);
+    const patch = visiblePatches.find((p) => p.id === draggingId);
     if (!patch) return;
 
     let nx = svgP.x - dragState.current.offsetX;
@@ -216,7 +342,7 @@ function ProductCanvas({
     ny = Math.max(0, Math.min(maxH, ny));
 
     // Collision check
-    if (isValidPlacement(nx, ny, patch.w, patch.h, maxW, maxH, placedPatches, patch.id)) {
+    if (isValidPlacement(nx, ny, patch.w, patch.h, maxW, maxH, visiblePatches, patch.id)) {
       setPlacedPatches((prev) =>
         prev.map((p) => (p.id === draggingId ? { ...p, x: nx, y: ny } : p))
       );
@@ -227,7 +353,7 @@ function ProductCanvas({
     if (dragState.current.id) {
       try {
         (e.target as Element).releasePointerCapture(e.pointerId);
-      } catch (err) {
+      } catch {
         // ignore if not captured
       }
       dragState.current = { id: null, offsetX: 0, offsetY: 0 };
@@ -235,7 +361,7 @@ function ProductCanvas({
     setIsDraggingState(null);
   };
 
-  const selectedPatch = placedPatches.find(p => p.id === selectedPatchId);
+  const selectedPatch = visiblePatches.find(p => p.id === selectedPatchId);
 
   return (
     <div
@@ -248,13 +374,55 @@ function ProductCanvas({
     >
       <div className="w-full h-full overflow-auto flex" onPointerDown={() => setSelectedPatchId(null)}>
         <div className="m-auto min-w-max min-h-max p-4 md:p-8 flex items-center justify-center">
+          <motion.div
+            animate={{ rotateY: activeSide === "front" ? 0 : 180 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <div
+              style={{
+                transform: activeSide === "back" ? "rotateY(180deg)" : "none",
+              }}
+            >
           <svg
             ref={svgRef}
             viewBox={`${vBoxX} ${vBoxY} ${vBoxW} ${vBoxH}`}
             style={{ width: pixelWidth, height: pixelHeight }}
             className="max-w-none max-h-none drop-shadow-sm"
           >
-        {/* Base Outline representing build area */}
+        <defs>
+          <clipPath id={denimClipId}>
+            <rect x={0} y={0} width={maxW} height={maxH} rx={6} />
+          </clipPath>
+          <pattern
+            id={denimWeaveId}
+            width={3}
+            height={3}
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(7)"
+          >
+            <path d="M0 0.75 H3 M0 2.25 H3" stroke="rgba(255,255,255,0.2)" strokeWidth={0.35} />
+            <path d="M0.75 0 V3 M2.25 0 V3" stroke="rgba(0,0,0,0.16)" strokeWidth={0.35} />
+          </pattern>
+          <pattern
+            id={denimSlubId}
+            width={18}
+            height={12}
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(-4)"
+          >
+            <path d="M1 2 H7 M10 2 H16 M3 7 H12 M14 10 H18" stroke="rgba(255,255,255,0.24)" strokeWidth={0.45} strokeLinecap="round" />
+            <path d="M0 5 H4 M7 9 H13 M15 4 H18" stroke="rgba(0,0,0,0.14)" strokeWidth={0.45} strokeLinecap="round" />
+          </pattern>
+        </defs>
+
+        {/* Base denim representing build area */}
+        <g clipPath={`url(#${denimClipId})`}>
+          <rect x={0} y={0} width={maxW} height={maxH} rx={6} fill={baseColourHex} />
+          <rect x={0} y={0} width={maxW} height={maxH} rx={6} fill={`url(#${denimWeaveId})`} opacity={0.9} />
+          <rect x={0} y={0} width={maxW} height={maxH} rx={6} fill={`url(#${denimSlubId})`} opacity={0.75} />
+          <rect x={0} y={0} width={maxW} height={maxH} rx={6} fill="rgba(255,255,255,0.08)" />
+        </g>
         <rect
           x={0}
           y={0}
@@ -262,7 +430,7 @@ function ProductCanvas({
           height={maxH}
           rx={6}
           style={{
-            fill: "rgba(255,255,255,0.6)",
+            fill: "transparent",
             stroke: PRIMARY,
             strokeWidth: 0.5,
             strokeDasharray: "2 2",
@@ -309,8 +477,7 @@ function ProductCanvas({
         )}
 
         {/* Placed Patches */}
-        <AnimatePresence>
-          {placedPatches.map((p) => {
+          {visiblePatches.map((p) => {
             const isSel = selectedPatchId === p.id;
             const isDragging = isDraggingState === p.id;
             const customisationImg = customisationUrls[p.product.id];
@@ -319,9 +486,8 @@ function ProductCanvas({
             return (
               <motion.g
                 key={p.id}
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={false}
                 animate={{ opacity: 1, scale: isSel ? 1.05 : 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
                 style={{ 
                   cursor: isDragging ? "grabbing" : "grab", 
                   touchAction: "none",
@@ -398,9 +564,16 @@ function ProductCanvas({
               </motion.g>
             );
           })}
-        </AnimatePresence>
-      </svg>
+          </svg>
+            </div>
+          </motion.div>
         </div>
+      </div>
+
+      <div className="absolute top-6 left-6 bg-background/90 backdrop-blur-md px-4 py-2 rounded-full border border-border shadow-sm pointer-events-none">
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          {activeSide} side
+        </span>
       </div>
 
       {/* Zoom Controls */}
@@ -489,6 +662,7 @@ function CustomizeContent() {
 
   // Placed patches on canvas
   const [placedPatches, setPlacedPatches] = useState<PlacedPatch[]>([]);
+  const [activeSide, setActiveSide] = useState<CustomizationSide>("front");
   const [customisationUrls, setCustomisationUrls] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -528,7 +702,7 @@ function CustomizeContent() {
                 if (templateImg) {
                   templateUrls[acc.id] = templateImg.url;
                 }
-              } catch (e) {
+              } catch {
                 // Ignore errors
               }
             }
@@ -539,35 +713,9 @@ function CustomizeContent() {
         if (cartItemId && cartItems.length > 0) {
           const item = cartItems.find((i) => i.cart_item_id === cartItemId);
           if (item && item.customizationMeta) {
-            const meta = item.customizationMeta;
-            const patches: PlacedPatch[] = [];
-            const ids = new Set<string>();
-
-            // Reconstruct patches from meta
-            for (let i = 0; i < 25; i++) {
-              const pId = meta[`patch_${i}_id`] as string;
-              if (!pId) break;
-
-              const px = meta[`patch_${i}_x`] as number;
-              const py = meta[`patch_${i}_y`] as number;
-              const prot = Number(meta[`patch_${i}_rot`] ?? 0);
-
-              const accProduct = activeAccs.find((a) => a.id === pId);
-              if (accProduct) {
-                patches.push({
-                  id: crypto.randomUUID(),
-                  product: accProduct,
-                  x: px,
-                  y: py,
-                  ...getPatchDims(accProduct),
-                  rot: prot,
-                });
-                ids.add(pId);
-              }
-            }
-
-            setPlacedPatches(patches);
-            setConfirmedSelectedIds(ids);
+            const restored = restorePatchesFromMeta(item.customizationMeta, activeAccs);
+            setPlacedPatches(restored.patches);
+            setConfirmedSelectedIds(restored.selectedIds);
           }
         }
       })
@@ -601,20 +749,11 @@ function CustomizeContent() {
     setIsSaving(true);
     
     try {
-      const customizationMeta: Record<string, string | number | boolean> = {
-        canvas_width_mm: product.dimensions?.maxWidthMm ?? 0,
-        canvas_height_mm: product.dimensions?.maxHeightMm ?? 0,
-        is_customised: placedPatches.length > 0,
-      };
+      const customizationMeta = encodeCustomizationMeta(
+        buildCustomizationMeta(product, placedPatches)
+      );
 
-      const patchesPayload = placedPatches.map((patch, index) => {
-        customizationMeta[`patch_${index}_id`] = patch.product.id;
-        customizationMeta[`patch_${index}_x`] = Math.round(patch.x);
-        customizationMeta[`patch_${index}_y`] = Math.round(patch.y);
-        customizationMeta[`patch_${index}_rot`] = patch.rot || 0;
-        if (index > 0) {
-          customizationMeta[`patch_${index}_layer`] = index;
-        }
+      const patchesPayload = placedPatches.map((patch) => {
         return {
           product_id: patch.product.id,
           quantity: 1
@@ -632,7 +771,7 @@ function CustomizeContent() {
       setTimeout(() => {
         router.push("/cart");
       }, 500);
-    } catch (err) {
+    } catch {
       showToast(cartItemId ? "Failed to update bag." : "Failed to save to bag.");
       setIsSaving(false);
     }
@@ -658,6 +797,9 @@ function CustomizeContent() {
 
   const selectedAccessories = accessories.filter((a) => confirmedSelectedIds.has(a.id));
   const maxPatchesLimit = Math.min(product.dimensions?.maxPatches ?? 25, 25);
+  const activeSidePatchCount = placedPatches.filter((patch) => patch.side === activeSide).length;
+  const inactiveSide = otherCustomizationSide(activeSide);
+  const baseDenimColour = getBaseDenimColour(product.id);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100dvh-5rem)] bg-background flex flex-col overflow-hidden relative">
@@ -690,6 +832,15 @@ function CustomizeContent() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setActiveSide(inactiveSide)}
+            className="rounded-full shadow-sm"
+          >
+            <FlipHorizontal className="w-4 h-4 mr-2" />
+            Flip to {inactiveSide}
+          </Button>
           <Button type="button" onClick={handleOpenDialog} className="rounded-full shadow-hover">
             <Wand2 className="w-4 h-4 mr-2" />
             Select Patches
@@ -710,7 +861,7 @@ function CustomizeContent() {
         
         {/* The 2D Canvas */}
         <div className="flex-1 relative">
-          <ProductCanvas product={product} placedPatches={placedPatches} setPlacedPatches={setPlacedPatches} onPlacementError={showToast} maxPatchesLimit={maxPatchesLimit} customisationUrls={customisationUrls} />
+          <ProductCanvas product={product} placedPatches={placedPatches} setPlacedPatches={setPlacedPatches} onPlacementError={showToast} maxPatchesLimit={maxPatchesLimit} activeSide={activeSide} baseColourHex={baseDenimColour.hex} customisationUrls={customisationUrls} />
           
           {/* Toast Notification */}
           <AnimatePresence>
@@ -735,10 +886,39 @@ function CustomizeContent() {
               <p className="text-sm font-mono font-semibold">{product.dimensions?.maxWidthMm} x {product.dimensions?.maxHeightMm} mm</p>
             </div>
             <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-border shadow-sm">
+              <p className="text-xs font-bold uppercase text-muted tracking-wider mb-0.5">Current Side</p>
+              <p className="text-sm font-mono font-semibold capitalize">{activeSide}</p>
+            </div>
+            <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-border shadow-sm">
+              <p className="text-xs font-bold uppercase text-muted tracking-wider mb-0.5">Base Colour</p>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-4 w-4 rounded-full border border-border shadow-sm"
+                  style={{ backgroundColor: baseDenimColour.hex }}
+                  aria-hidden="true"
+                />
+                <p className="text-sm font-mono font-semibold uppercase">{baseDenimColour.hex}</p>
+              </div>
+            </div>
+            <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-border shadow-sm">
               <p className="text-xs font-bold uppercase text-muted tracking-wider mb-0.5">Patches Placed</p>
               <p className="text-sm font-mono font-semibold">{placedPatches.length} / {maxPatchesLimit}</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted mt-1">
+                {activeSidePatchCount} on {activeSide}
+              </p>
             </div>
           </div>
+
+          {baseDenimColour.isFallback && (
+            <div className="absolute bottom-6 right-6 z-20 max-w-sm rounded-2xl border border-primary/25 bg-background/90 px-4 py-3 shadow-sm backdrop-blur-md pointer-events-none">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <p className="text-xs font-medium leading-relaxed text-foreground">
+                  No colour is available for this base. The default denim colour has been applied and may look different from the final delivered product.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Drag Source Dock (Bottom on Mobile, Right on Desktop) */}
@@ -749,7 +929,7 @@ function CustomizeContent() {
               className="lg:w-72 bg-surface/80 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border/60 shrink-0 p-4 lg:p-6 flex flex-col z-10 shadow-multi"
             >
               <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted mb-4 hidden lg:block">Available Patches</h3>
-              <p className="text-xs text-muted mb-6 leading-relaxed hidden lg:block">Drag and drop these patches onto your canvas, or tap them to place.</p>
+              <p className="text-xs text-muted mb-6 leading-relaxed hidden lg:block">Drag and drop these patches onto the {activeSide} side, or tap them to place.</p>
               <div className="flex-1 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden flex flex-row lg:flex-col gap-4 pb-4 lg:pb-0 items-start">
                 {selectedAccessories.map((patch) => {
                   const dims = getPatchDims(patch);
@@ -774,11 +954,12 @@ function CustomizeContent() {
 
                         let cx = (product?.dimensions?.maxWidthMm ?? 10) / 2;
                         let cy = (product?.dimensions?.maxHeightMm ?? 10) / 2;
+                        const sameSidePatches = placedPatches.filter((placedPatch) => placedPatch.side === activeSide);
                         
                         let foundSpot = false;
                         for (let dx = -20; dx <= 20; dx += 10) {
                           for (let dy = -20; dy <= 20; dy += 10) {
-                            if (isValidPlacement(cx + dx, cy + dy, dims.w, dims.h, product?.dimensions?.maxWidthMm ?? 0, product?.dimensions?.maxHeightMm ?? 0, placedPatches)) {
+                            if (isValidPlacement(cx + dx, cy + dy, dims.w, dims.h, product?.dimensions?.maxWidthMm ?? 0, product?.dimensions?.maxHeightMm ?? 0, sameSidePatches)) {
                               cx += dx;
                               cy += dy;
                               foundSpot = true;
@@ -788,12 +969,13 @@ function CustomizeContent() {
                           if (foundSpot) break;
                         }
 
-                        if (foundSpot || isValidPlacement(cx, cy, dims.w, dims.h, product?.dimensions?.maxWidthMm ?? 0, product?.dimensions?.maxHeightMm ?? 0, placedPatches)) {
+                        if (foundSpot || isValidPlacement(cx, cy, dims.w, dims.h, product?.dimensions?.maxWidthMm ?? 0, product?.dimensions?.maxHeightMm ?? 0, sameSidePatches)) {
                           setPlacedPatches((prev) => [
                             ...prev,
                             {
                               id: crypto.randomUUID(),
                               product: patch,
+                              side: activeSide,
                               x: cx,
                               y: cy,
                               w: dims.w,

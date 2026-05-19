@@ -1,25 +1,22 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Trash2, Plus, Minus, Package, Tag, X } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Minus, Package } from "lucide-react";
 import { cartEngine, CartItem } from "@/app/utils/cartEngine";
-import { getProduct, listPromotions } from "@/lib/api/storefront";
+import { getProduct } from "@/lib/api/storefront";
 import { formatMoney } from "@/lib/format";
 import { productPath } from "@/lib/seo";
-import type { Product, PublicPromotion } from "@/lib/types/storefront";
+import type { Product } from "@/lib/types/storefront";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [loading, setLoading] = useState(true);
-
-  const [promotions, setPromotions] = useState<PublicPromotion[]>([]);
-  const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
-  const [isPromotionsModalOpen, setIsPromotionsModalOpen] = useState(false);
+  const ignoreNextCartEventRef = useRef(false);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -54,36 +51,19 @@ export default function CartPage() {
 
   useEffect(() => {
     void Promise.resolve().then(loadCart);
-    window.addEventListener("highkey:cart-updated", loadCart);
-    return () => window.removeEventListener("highkey:cart-updated", loadCart);
+    const handleCartUpdated = () => {
+      if (ignoreNextCartEventRef.current) {
+        ignoreNextCartEventRef.current = false;
+        return;
+      }
+      void loadCart();
+    };
+    window.addEventListener("highkey:cart-updated", handleCartUpdated);
+    return () => window.removeEventListener("highkey:cart-updated", handleCartUpdated);
   }, [loadCart]);
 
-  useEffect(() => {
-    listPromotions({ limit: 100 })
-      .then((res) => setPromotions(res.data))
-      .catch(() => setPromotions([]));
-  }, []);
-
-  const getPromotionDisabledReason = (promo: PublicPromotion): string | null => {
-    const now = new Date();
-    const start = new Date(promo.startDate);
-    const end = new Date(promo.endDate);
-
-    if (now < start || now > end) {
-      return "Not currently active";
-    }
-
-    if (!promo.storeWide && promo.productId) {
-      const hasProduct = cartItems.some(i => i.product_id === promo.productId);
-      if (!hasProduct) {
-        return "Required product not in cart";
-      }
-    }
-
-    return null;
-  };
-
   const handleRemove = async (cartItemId: string) => {
+    ignoreNextCartEventRef.current = true;
     await cartEngine.removeItem(cartItemId);
     setCartItems((prev) => prev.filter((i) => i.cart_item_id !== cartItemId && i.referenceId !== cartItemId));
   };
@@ -96,11 +76,28 @@ export default function CartPage() {
       await handleRemove(cartItemId);
       return;
     }
+    ignoreNextCartEventRef.current = true;
     await cartEngine.updateItemQuantity(cartItemId, newQuantity);
     setCartItems((prev) =>
-      prev.map((i) =>
-        i.cart_item_id === cartItemId ? { ...i, quantity: newQuantity } : i
-      )
+      prev.map((i) => {
+        if (i.cart_item_id === cartItemId) {
+          return { ...i, quantity: newQuantity };
+        }
+
+        if (i.referenceId === cartItemId) {
+          const parent = prev.find((item) => item.cart_item_id === cartItemId);
+          const previousQuantity = parent?.quantity || 1;
+          return {
+            ...i,
+            quantity: Math.max(
+              1,
+              Math.round((i.quantity * newQuantity) / previousQuantity)
+            ),
+          };
+        }
+
+        return i;
+      })
     );
   };
 
@@ -305,28 +302,6 @@ export default function CartPage() {
                   </span>
                 </div>
 
-                {selectedPromotionId && (() => {
-                  const promo = promotions.find(p => p.id === selectedPromotionId);
-                  return promo ? (
-                    <motion.div layout className="flex justify-between items-center text-sm text-green-600">
-                      <span className="flex items-center gap-1.5">
-                        <Tag size={12} />
-                        {promo.discountPercentage
-                          ? `${promo.discountPercentage}% OFF applied`
-                          : promo.discountValueCents
-                          ? `${formatMoney(promo.discountValueCents, "SGD")} OFF applied`
-                          : "Promotion applied"}
-                      </span>
-                      <button
-                        onClick={() => setSelectedPromotionId(null)}
-                        className="text-muted hover:text-destructive"
-                      >
-                        <X size={14} />
-                      </button>
-                    </motion.div>
-                  ) : null;
-                })()}
-
                 <motion.div layout className="flex justify-between text-sm">
                   <span className="text-muted">Shipping</span>
                   <span className="text-muted italic">
@@ -346,15 +321,6 @@ export default function CartPage() {
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsPromotionsModalOpen(true)}
-                  className="w-full py-2 border border-primary text-primary rounded-lg text-sm font-medium hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Tag size={14} />
-                  {selectedPromotionId ? "Change Promotion" : "View Promotions"}
-                </button>
-
                 <Link href="/checkout">
                   <Button size="lg" className="w-full rounded-full shadow-hover text-lg">
                     Proceed to Checkout
@@ -371,98 +337,6 @@ export default function CartPage() {
         )}
       </div>
     </motion.div>
-
-    {/* Promotions Modal */}
-    {isPromotionsModalOpen && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-background rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-heading">Available Promotions</h3>
-            <button
-              onClick={() => setIsPromotionsModalOpen(false)}
-              className="text-muted hover:text-foreground"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          {promotions.length === 0 ? (
-            <p className="text-muted text-sm">No promotions available right now.</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {promotions.map((promo) => {
-                const disabledReason = getPromotionDisabledReason(promo);
-                const isDisabled = disabledReason !== null;
-                return (
-                  <div
-                    key={promo.id}
-                    onClick={() => {
-                      if (!isDisabled) {
-                        setSelectedPromotionId(promo.id === selectedPromotionId ? null : promo.id);
-                      }
-                    }}
-                    className={`p-4 border rounded-lg transition-colors ${
-                      isDisabled
-                        ? "opacity-50 cursor-not-allowed border-border bg-secondary/10"
-                        : promo.id === selectedPromotionId
-                        ? "border-primary bg-primary/5 cursor-pointer"
-                        : "border-border hover:border-primary/50 cursor-pointer"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span className="font-medium">
-                        {promo.discountPercentage
-                          ? `${promo.discountPercentage}% OFF`
-                          : promo.discountValueCents
-                          ? `${formatMoney(promo.discountValueCents, "SGD")} OFF`
-                          : "Discount"}
-                      </span>
-                      {promo.id === selectedPromotionId && !isDisabled && (
-                        <span className="text-primary text-xs font-bold">Selected</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted mt-1">
-                      {promo.storeWide ? "Store-wide promotion" : `For specific product`}
-                    </p>
-                    <p className="text-xs text-muted/60 mt-1">
-                      Valid: {new Date(promo.startDate).toLocaleDateString()} - {new Date(promo.endDate).toLocaleDateString()}
-                    </p>
-                    {isDisabled && (
-                      <p className="text-xs text-destructive mt-2 font-medium flex items-center gap-1">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-destructive"></span>
-                        {disabledReason}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="mt-6 flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => setSelectedPromotionId(null)}
-            >
-              Clear
-            </Button>
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() => setIsPromotionsModalOpen(false)}
-            >
-              Done
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    )}
     </>
   );
 }

@@ -122,7 +122,7 @@ export interface Order {
   refundedAmountCents: number;
   currencyCode: string;
   promotionId: string | null;
-  customizationMeta: Record<string, unknown> | null;
+  customizationMeta: string | Record<string, unknown> | null;
   orderStatus: OrderStatus;
   paymentStatus: PaymentStatus;
   customerNote: string | null;

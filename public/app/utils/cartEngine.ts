@@ -2,7 +2,7 @@ export interface CartItem {
   cart_item_id: string;
   product_id: string;
   quantity: number;
-  customizationMeta?: Record<string, string | number | boolean>;
+  customizationMeta?: string;
   standalone?: boolean;
   referenceId?: string;
 }
@@ -114,7 +114,7 @@ class CartEngine {
    */
   async addCustomizedProduct(
     baseProductId: string,
-    customizationMeta: Record<string, string | number | boolean>,
+    customizationMeta: string,
     patches: { product_id: string, quantity: number }[]
   ): Promise<void> {
     // Scan and remove any existing customized item first to ensure only one unique customized design exists
@@ -168,7 +168,7 @@ class CartEngine {
   async updateCustomizedProduct(
     cart_item_id: string,
     baseProductId: string,
-    customizationMeta: Record<string, string | number | boolean>,
+    customizationMeta: string,
     patches: { product_id: string, quantity: number }[]
   ): Promise<void> {
     await this.removeItem(cart_item_id);

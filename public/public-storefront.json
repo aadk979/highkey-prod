@@ -103,19 +103,7 @@
                 },
                 "customerNote": "string | empty",
                 "promotionId": "uuid | null (optional)",
-                "customizationMeta": {
-                    "canvas_height_mm": "number",
-                    "canvas_width_mm": "number",
-                    "is_customised": "boolean",
-                    "patch_0_id": "accessory UUID",
-                    "patch_0_x": "number",
-                    "patch_0_y": "number",
-                    "patch_1_id": "accessory UUID",
-                    "patch_1_layer": "number",
-                    "patch_1_rot": "number",
-                    "patch_1_x": "number",
-                    "patch_1_y": "number"
-                },
+                "customizationMeta": "stringified compact schema v2 JSON, e.g. {\"v\":2,\"c\":[100,100],\"f\":[[\"accessory UUID\",50,50,10,10,0,0]],\"b\":[]}",
                 "fulfillment": {
                     "method": "delivery | self collect | roadshow",
                     "collectionLocationId": "",
@@ -175,9 +163,7 @@
                     "collectionLocationId": "uuid | null (optional)",
                     "deliveryAddress": "string | null (optional)"
                 },
-                "customizationMeta": {
-                    "key": "string | number | boolean"
-                },
+                "customizationMeta": "stringified compact schema v2 JSON, e.g. {\"v\":2,\"c\":[100,100],\"f\":[[\"accessory UUID\",50,50,10,10,0,0]],\"b\":[]}",
                 "customerNote": "string | null (optional, max 1000)"
             },
             "res": {
@@ -226,7 +212,7 @@
                 "refundedAmountCents": "number",
                 "currencyCode": "string",
                 "promotionId": "uuid | null",
-                "customizationMeta": "object | null",
+                "customizationMeta": "stringified compact schema v2 JSON | null",
                 "orderStatus": "received | preparing | shipped_out | delivered | collection_scheduled | collected | cancelled | refunded | disputed",
                 "paymentStatus": "pending | requires_action | paid | failed | cancelled | partially_refunded | refunded | disputed | disputed_won | disputed_lost",
                 "customerNote": "string | null",
