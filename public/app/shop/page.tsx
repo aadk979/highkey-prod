@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { motion } from "framer-motion";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { listProducts } from "@/lib/api/storefront";
 import type { Product } from "@/lib/types/storefront";
@@ -11,30 +18,103 @@ import { ProductsLoading } from "./productsLoading";
 const filters = ["All", "Base", "Accessory"] as const;
 type Filter = (typeof filters)[number];
 
-export default function ShopPage() {
-  const [filter, setFilter] = useState<Filter>("All");
+const filterQueryValues: Record<Filter, "base" | "accessory" | null> = {
+  All: null,
+  Base: "base",
+  Accessory: "accessory",
+};
+
+function parseFilterParam(value: string | null): Filter {
+  if (value === "base") return "Base";
+  if (value === "accessory") return "Accessory";
+  return "All";
+}
+
+function parsePageParam(value: string | null) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function ShopPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filter = useMemo(
+    () => parseFilterParam(searchParams.get("filter")),
+    [searchParams]
+  );
+  const page = useMemo(
+    () => parsePageParam(searchParams.get("page")),
+    [searchParams]
+  );
   const [products, setProducts] = useState<Product[] | null>(null);
   const [pagination, setPagination] = useState<{
     page: number;
     totalPages: number;
   } | null>(null);
-  const [page, setPage] = useState(1);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState(false);
 
+  const updateShopUrl = useCallback(
+    (
+      nextState: { filter?: Filter; page?: number },
+      history: "push" | "replace" = "push"
+    ) => {
+      const nextFilter = nextState.filter ?? filter;
+      const nextPage = nextState.page ?? page;
+      const params = new URLSearchParams(searchParams.toString());
+      const filterValue = filterQueryValues[nextFilter];
+
+      if (filterValue) {
+        params.set("filter", filterValue);
+      } else {
+        params.delete("filter");
+      }
+
+      if (nextPage > 1) {
+        params.set("page", String(nextPage));
+      } else {
+        params.delete("page");
+      }
+
+      const queryString = params.toString();
+      const href = queryString ? `${pathname}?${queryString}` : pathname;
+      router[history](href, { scroll: false });
+    },
+    [filter, page, pathname, router, searchParams]
+  );
+
   useEffect(() => {
+    const rawFilter = searchParams.get("filter");
+    const rawPage = searchParams.get("page");
+    const expectedFilter = filterQueryValues[filter];
+    const hasNonCanonicalFilter =
+      rawFilter !== expectedFilter && !(rawFilter === null && expectedFilter === null);
+    const hasNonCanonicalPage =
+      (rawPage === null && page !== 1) || (rawPage !== null && rawPage !== String(page));
+
+    if (hasNonCanonicalFilter || hasNonCanonicalPage) {
+      updateShopUrl({ filter, page }, "replace");
+    }
+  }, [filter, page, searchParams, updateShopUrl]);
+
+  useEffect(() => {
+    let ignore = false;
+
     async function fetchData() {
       setProductsLoading(true);
       setProductsError(false);
 
       try {
-        const type =
-          filter === "Base"
-            ? "base"
-            : filter === "Accessory"
-              ? "accessory"
-              : undefined;
+        const type = filterQueryValues[filter] ?? undefined;
         const json = await listProducts({ page, limit: 20, type });
+
+        if (ignore) return;
+
+        if (json.pagination.totalPages > 0 && page > json.pagination.totalPages) {
+          updateShopUrl({ page: json.pagination.totalPages }, "replace");
+          return;
+        }
 
         setProducts(json.data);
         setPagination({
@@ -42,15 +122,22 @@ export default function ShopPage() {
           totalPages: json.pagination.totalPages,
         });
       } catch {
+        if (ignore) return;
         setProductsError(true);
         setProducts(null);
       } finally {
-        setProductsLoading(false);
+        if (!ignore) {
+          setProductsLoading(false);
+        }
       }
     }
 
     fetchData();
-  }, [filter, page]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [filter, page, updateShopUrl]);
 
   return (
     <motion.div
@@ -83,8 +170,7 @@ export default function ShopPage() {
               <button
                 key={f}
                 onClick={() => {
-                  setFilter(f);
-                  setPage(1);
+                  updateShopUrl({ filter: f, page: 1 });
                 }}
                 className={`text-sm font-medium whitespace-nowrap px-1 relative transition-colors duration-300 py-4 ${
                   filter === f
@@ -125,7 +211,7 @@ export default function ShopPage() {
               <Button
                 variant="outline"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => updateShopUrl({ page: Math.max(1, page - 1) })}
                 className="rounded-full px-6"
               >
                 Previous
@@ -138,7 +224,9 @@ export default function ShopPage() {
                 variant="outline"
                 disabled={page >= pagination.totalPages}
                 onClick={() =>
-                  setPage((p) => Math.min(pagination.totalPages, p + 1))
+                  updateShopUrl({
+                    page: Math.min(pagination.totalPages, page + 1),
+                  })
                 }
                 className="rounded-full px-6"
               >
@@ -148,5 +236,13 @@ export default function ShopPage() {
           )}
       </section>
     </motion.div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <ShopPageContent />
+    </Suspense>
   );
 }

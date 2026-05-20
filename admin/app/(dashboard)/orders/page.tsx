@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import {
@@ -23,21 +23,22 @@ import { PaginationBar } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
 import { ordersApi } from "@/lib/api/orders";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
+import { useUrlQueryParam } from "@/hooks/use-url-query-state";
 import { formatCents, formatDate } from "@/lib/utils";
 import type { OrderStatus, PaymentStatus } from "@/lib/types/order";
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [status, setStatus] = useState<OrderStatus | "">("");
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | "">("");
-  const [email, setEmail] = useState("");
+  const [status, setStatus] = useUrlQueryParam("status");
+  const [paymentStatus, setPaymentStatus] = useUrlQueryParam("paymentStatus");
+  const [email, setEmail] = useUrlQueryParam("email");
 
   const fetcher = useCallback(
     (params: { page: number; limit: number }) =>
       ordersApi.list({
         ...params,
-        status: status || undefined,
-        paymentStatus: paymentStatus || undefined,
+        status: (status as OrderStatus) || undefined,
+        paymentStatus: (paymentStatus as PaymentStatus) || undefined,
         email: email || undefined,
       }),
     [status, paymentStatus, email],
@@ -56,12 +57,12 @@ export default function OrdersPage() {
             label="Customer email"
             placeholder="Search by email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value, { resetPage: true })}
           />
           <Select
             label="Order status"
             value={status}
-            onChange={(e) => setStatus(e.target.value as OrderStatus | "")}
+            onChange={(e) => setStatus(e.target.value, { resetPage: true })}
           >
             <option value="">All</option>
             <option value="received">Received</option>
@@ -76,7 +77,7 @@ export default function OrdersPage() {
             label="Payment status"
             value={paymentStatus}
             onChange={(e) =>
-              setPaymentStatus(e.target.value as PaymentStatus | "")
+              setPaymentStatus(e.target.value, { resetPage: true })
             }
           >
             <option value="">All</option>

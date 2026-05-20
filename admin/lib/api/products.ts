@@ -9,7 +9,12 @@ import type {
 } from "@/lib/types/product";
 
 export const productsApi = {
-  list: (params?: { page?: number; limit?: number; type?: ProductType }) =>
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    type?: ProductType;
+    search?: string;
+  }) =>
     apiRequest<PaginatedResponse<Product>>("/api/v1/admin/products", {
       params,
     }),

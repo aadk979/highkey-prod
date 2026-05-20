@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PaginatedResponse, Pagination } from "@/lib/types/common";
 import { ApiError } from "@/lib/types/common";
+import { useUrlPageParam } from "@/hooks/use-url-query-state";
 
 export function usePaginatedFetch<T>(
   fetcher: (params: { page: number; limit: number }) => Promise<PaginatedResponse<T>>,
   deps: unknown[] = [],
   limit = 20,
 ) {
+  void deps;
+
   const [data, setData] = useState<T[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlPageParam();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,10 +30,18 @@ export function usePaginatedFetch<T>(
     } finally {
       setLoading(false);
     }
-  }, [fetcher, page, limit, ...deps]);
+  }, [fetcher, page, limit]);
 
   useEffect(() => {
-    load();
+    let active = true;
+
+    queueMicrotask(() => {
+      if (active) void load();
+    });
+
+    return () => {
+      active = false;
+    };
   }, [load]);
 
   return { data, pagination, page, setPage, loading, error, reload: load };

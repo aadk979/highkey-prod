@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ActiveBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { PageLoader } from "@/components/ui/spinner";
 import {
@@ -23,43 +24,56 @@ import { Select } from "@/components/ui/select";
 import { ProductForm } from "@/components/products/product-form";
 import { productsApi } from "@/lib/api/products";
 import { usePaginatedFetch } from "@/hooks/use-paginated-fetch";
+import { useUrlQueryParam } from "@/hooks/use-url-query-state";
 import { formatCents } from "@/lib/utils";
 import type { ProductType } from "@/lib/types/product";
 
 export default function ProductsPage() {
   const router = useRouter();
-  const [typeFilter, setTypeFilter] = useState<ProductType | "">("");
+  const [typeFilter, setTypeFilter] = useUrlQueryParam("type");
+  const [search, setSearch] = useUrlQueryParam("search");
   const [createOpen, setCreateOpen] = useState(false);
 
   const fetcher = useCallback(
     (params: { page: number; limit: number }) =>
       productsApi.list({
         ...params,
-        type: typeFilter || undefined,
+        type: (typeFilter as ProductType) || undefined,
+        search: search || undefined,
       }),
-    [typeFilter],
+    [typeFilter, search],
   );
 
   const { data, pagination, setPage, loading, error, reload } =
-    usePaginatedFetch(fetcher, [typeFilter]);
+    usePaginatedFetch(fetcher, [typeFilter, search]);
 
   return (
     <AppShell title="Products">
       <Card className="p-0">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline p-4">
-          <Select
-            label=""
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value as ProductType | "");
-              setPage(1);
-            }}
-            className="w-40"
-          >
-            <option value="">All types</option>
-            <option value="base">Base</option>
-            <option value="accessory">Accessory</option>
-          </Select>
+          <div className="grid flex-1 gap-3 sm:grid-cols-[minmax(220px,1fr)_10rem]">
+            <Input
+              label=""
+              aria-label="Search products"
+              placeholder="Search products"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value, { resetPage: true })
+              }
+            />
+            <Select
+              label=""
+              aria-label="Product type"
+              value={typeFilter}
+              onChange={(e) =>
+                setTypeFilter(e.target.value, { resetPage: true })
+              }
+            >
+              <option value="">All types</option>
+              <option value="base">Base</option>
+              <option value="accessory">Accessory</option>
+            </Select>
+          </div>
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
             Add product
