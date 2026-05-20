@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +23,12 @@ import type { Product } from "@/lib/types/storefront";
 import { formatMoney } from "@/lib/format";
 import { productPath } from "@/lib/seo";
 import { cartEngine } from "@/app/utils/cartEngine";
+import {
+  ACCESSORY_CATEGORY_DEFINITIONS,
+  getAccessoryCategoryLabel,
+  inferAccessoryCategoryId,
+  type AccessoryCategoryId,
+} from "@/lib/accessoryCategories";
 import {
   CUSTOMIZATION_META_SCHEMA_VERSION,
   CUSTOMIZATION_SIDES,
@@ -47,6 +53,8 @@ type PlacedPatch = {
   h: number; // height in mm
   rot?: number; // rotation in degrees
 };
+
+type DialogCategoryId = "all" | AccessoryCategoryId;
 
 // --- Helpers ---
 
@@ -659,6 +667,8 @@ function CustomizeContent() {
   // Dialog & Selection State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogSearch, setDialogSearch] = useState("");
+  const [activeDialogCategory, setActiveDialogCategory] =
+    useState<DialogCategoryId>("all");
   const [tempSelectedIds, setTempSelectedIds] = useState<Set<string>>(new Set());
   const [confirmedSelectedIds, setConfirmedSelectedIds] = useState<Set<string>>(new Set());
 
@@ -744,6 +754,47 @@ function CustomizeContent() {
       }
     };
   }, [productId, cartItemId, router]);
+
+  const accessoryCategoryOptions = useMemo(() => {
+    const categoryCounts = new Map<AccessoryCategoryId, number>();
+
+    accessories.forEach((accessory) => {
+      const categoryId = inferAccessoryCategoryId(accessory.name);
+      categoryCounts.set(categoryId, (categoryCounts.get(categoryId) ?? 0) + 1);
+    });
+
+    return [
+      { id: "all" as const, label: "All", count: accessories.length },
+      ...ACCESSORY_CATEGORY_DEFINITIONS.filter((category) =>
+        categoryCounts.has(category.id)
+      ).map((category) => ({
+        id: category.id,
+        label: category.label,
+        count: categoryCounts.get(category.id) ?? 0,
+      })),
+    ];
+  }, [accessories]);
+
+  const effectiveDialogCategory =
+    activeDialogCategory === "all" ||
+    accessoryCategoryOptions.some((category) => category.id === activeDialogCategory)
+      ? activeDialogCategory
+      : "all";
+
+  const visibleDialogAccessories = useMemo(() => {
+    const normalizedSearch = dialogSearch.trim().toLowerCase();
+
+    return accessories.filter((accessory) => {
+      const matchesCategory =
+        effectiveDialogCategory === "all" ||
+        inferAccessoryCategoryId(accessory.name) === effectiveDialogCategory;
+      const matchesSearch =
+        !normalizedSearch ||
+        accessory.name.toLowerCase().includes(normalizedSearch);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [accessories, effectiveDialogCategory, dialogSearch]);
 
   // Handle open dialog
   const handleOpenDialog = () => {
@@ -1062,21 +1113,45 @@ function CustomizeContent() {
 
             <div className="flex-1 overflow-y-auto p-6 lg:p-12">
               <div className="max-w-6xl mx-auto">
-                <div className="relative mb-8 max-w-md">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                  <input
-                    type="text"
-                    placeholder="Search patches..."
-                    value={dialogSearch}
-                    onChange={(e) => setDialogSearch(e.target.value)}
-                    className="w-full bg-surface border border-border rounded-full pl-12 pr-6 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
-                  />
+                <div className="mb-8 flex flex-col gap-4">
+                  <div className="relative max-w-md">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search patches..."
+                      value={dialogSearch}
+                      onChange={(e) => setDialogSearch(e.target.value)}
+                      className="w-full bg-surface border border-border rounded-full pl-12 pr-6 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {accessoryCategoryOptions.map((category) => {
+                      const isActive = effectiveDialogCategory === category.id;
+
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => setActiveDialogCategory(category.id)}
+                          className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
+                            isActive
+                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                              : "border-border bg-surface text-muted hover:border-primary/40 hover:text-foreground"
+                          }`}
+                        >
+                          {category.label}
+                          <span className="ml-2 font-mono opacity-70">{category.count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {accessories
-                    .filter((a) => a.name.toLowerCase().includes(dialogSearch.toLowerCase()))
-                    .map((acc) => {
+                {visibleDialogAccessories.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {visibleDialogAccessories.map((acc) => {
+                      const categoryId = inferAccessoryCategoryId(acc.name);
                       const isSelected = tempSelectedIds.has(acc.id);
                       return (
                         <div
@@ -1100,12 +1175,22 @@ function CustomizeContent() {
                           </div>
                           <div className="text-center w-full mt-auto">
                             <p className="text-xs font-bold leading-tight line-clamp-2 min-h-[2.5em]">{acc.name}</p>
+                            <p className="mt-1 text-[10px] uppercase tracking-wider text-muted">
+                              {getAccessoryCategoryLabel(categoryId)}
+                            </p>
                             <p className="text-[11px] text-muted mt-1">{formatMoney(acc.basePriceCents, acc.currencyCode)}</p>
                           </div>
                         </div>
                       );
                     })}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex min-h-64 items-center justify-center rounded-2xl border border-dashed border-border bg-surface/60 p-8 text-center">
+                    <p className="max-w-sm text-sm font-medium text-muted">
+                      No patches match this search in {effectiveDialogCategory === "all" ? "all categories" : getAccessoryCategoryLabel(effectiveDialogCategory)}.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
