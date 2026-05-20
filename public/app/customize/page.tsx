@@ -89,6 +89,28 @@ function getPatchDims(p: Product) {
   };
 }
 
+function isUsableImageSrc(value: string | undefined) {
+  return Boolean(
+    value &&
+      (value.startsWith("/") ||
+        value.startsWith("http://") ||
+        value.startsWith("https://") ||
+        value.startsWith("data:") ||
+        value.startsWith("blob:"))
+  );
+}
+
+function getPatchImageSrc(
+  product: Product,
+  customisationUrls: Record<string, string>
+) {
+  const customisationImage =
+    customisationUrls[product.id] ??
+    product.customisationImageIds?.find(isUsableImageSrc);
+
+  return customisationImage || product.imageIds?.[0];
+}
+
 function buildCustomizationMeta(product: Product, placedPatches: PlacedPatch[]): CustomizationMeta {
   const sides = CUSTOMIZATION_SIDES.reduce(
     (acc, side) => {
@@ -490,8 +512,7 @@ function ProductCanvas({
           {visiblePatches.map((p) => {
             const isSel = selectedPatchId === p.id;
             const isDragging = isDraggingState === p.id;
-            const customisationImg = customisationUrls[p.product.id];
-            const imgHref = customisationImg || p.product.imageIds?.[0];
+            const imgHref = getPatchImageSrc(p.product, customisationUrls);
 
             return (
               <motion.g
@@ -719,16 +740,24 @@ function CustomizeContent() {
         const templateUrls: Record<string, string> = {};
         await Promise.all(
           activeAccs.map(async (acc) => {
-            if (acc.customisationImageIds && acc.customisationImageIds.length > 0) {
-              try {
-                const res = await getCustomisationTemplates(acc.id);
-                const templateImg = res.images.find(img => img.id === acc.customisationImageIds?.[0]);
-                if (templateImg) {
-                  templateUrls[acc.id] = templateImg.url;
-                }
-              } catch {
-                // Ignore errors
+            const customisationImageId = acc.customisationImageIds?.[0];
+            if (!customisationImageId) return;
+
+            if (isUsableImageSrc(customisationImageId)) {
+              templateUrls[acc.id] = customisationImageId;
+              return;
+            }
+
+            try {
+              const res = await getCustomisationTemplates(acc.id);
+              const templateImg = res.images.find(
+                (img) => img.id === customisationImageId
+              );
+              if (templateImg) {
+                templateUrls[acc.id] = templateImg.url;
               }
+            } catch {
+              // Fall back to the standard product image when templates are unavailable.
             }
           })
         );
@@ -1011,6 +1040,7 @@ function CustomizeContent() {
               <div className="flex-1 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden flex flex-row lg:flex-col gap-4 pb-4 lg:pb-0 items-start">
                 {selectedAccessories.map((patch) => {
                   const dims = getPatchDims(patch);
+                  const patchImage = getPatchImageSrc(patch, customisationUrls);
                   return (
                     <div
                       key={patch.id}
@@ -1067,8 +1097,8 @@ function CustomizeContent() {
                       className="shrink-0 w-24 lg:w-full bg-background rounded-2xl border border-border/80 p-3 flex flex-col items-center gap-3 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors shadow-sm"
                     >
                       <div className="w-12 h-12 relative flex items-center justify-center">
-                        {patch.imageIds?.[0] ? (
-                          <Image src={patch.imageIds[0]} alt={patch.name} fill className="object-contain" unoptimized />
+                        {patchImage ? (
+                          <Image src={patchImage} alt={patch.name} fill className="object-contain" unoptimized />
                         ) : (
                           <Package className="w-6 h-6 text-muted" />
                         )}
@@ -1153,6 +1183,7 @@ function CustomizeContent() {
                     {visibleDialogAccessories.map((acc) => {
                       const categoryId = inferAccessoryCategoryId(acc.name);
                       const isSelected = tempSelectedIds.has(acc.id);
+                      const accImage = getPatchImageSrc(acc, customisationUrls);
                       return (
                         <div
                           key={acc.id}
@@ -1167,8 +1198,8 @@ function CustomizeContent() {
                             <Check className="w-3.5 h-3.5" />
                           </div>
                           <div className="w-16 h-16 relative flex items-center justify-center mt-2">
-                            {acc.imageIds?.[0] ? (
-                              <Image src={acc.imageIds[0]} alt={acc.name} fill className="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" unoptimized />
+                            {accImage ? (
+                              <Image src={accImage} alt={acc.name} fill className="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" unoptimized />
                             ) : (
                               <Package className="w-8 h-8 text-muted/50" />
                             )}
