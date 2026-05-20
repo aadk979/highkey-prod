@@ -17,7 +17,7 @@ import {
   FlipHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getProduct, listProducts, getCustomisationTemplates } from "@/lib/api/storefront";
+import { getProduct, listProducts } from "@/lib/api/storefront";
 import { StorefrontApiError } from "@/lib/api/client";
 import type { Product } from "@/lib/types/storefront";
 import { formatMoney } from "@/lib/format";
@@ -71,6 +71,7 @@ const DEFAULT_BASE_DENIM_COLOUR =
   BASE_DENIM_COLOURS[DEFAULT_BASE_DENIM_PRODUCT_ID];
 const NOT_CUSTOMIZABLE_MESSAGE =
   "This product is not customizable. Redirecting to shop.";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 function getBaseDenimColour(productId: string) {
   const colour =
@@ -100,13 +101,26 @@ function isUsableImageSrc(value: string | undefined) {
   );
 }
 
+function customisationUploadSrc(productId: string, customisationImageId: string) {
+  if (isUsableImageSrc(customisationImageId)) {
+    return customisationImageId;
+  }
+
+  return `${API_BASE_URL}/uploads/customisation/${encodeURIComponent(
+    productId
+  )}/${encodeURIComponent(customisationImageId)}.png`;
+}
+
 function getPatchImageSrc(
   product: Product,
   customisationUrls: Record<string, string>
 ) {
+  const customisationImageId = product.customisationImageIds?.[0];
   const customisationImage =
     customisationUrls[product.id] ??
-    product.customisationImageIds?.find(isUsableImageSrc);
+    (customisationImageId
+      ? customisationUploadSrc(product.id, customisationImageId)
+      : undefined);
 
   return customisationImage || product.imageIds?.[0];
 }
@@ -736,31 +750,17 @@ function CustomizeContent() {
         const activeAccs = accResponse.data.filter((a) => a.isActive);
         setAccessories(activeAccs);
 
-        // Fetch customisation templates for each active accessory to get the resolved URLs
+        // Build the customisation template URLs from the API image IDs.
         const templateUrls: Record<string, string> = {};
-        await Promise.all(
-          activeAccs.map(async (acc) => {
-            const customisationImageId = acc.customisationImageIds?.[0];
-            if (!customisationImageId) return;
+        activeAccs.forEach((acc) => {
+          const customisationImageId = acc.customisationImageIds?.[0];
+          if (!customisationImageId) return;
 
-            if (isUsableImageSrc(customisationImageId)) {
-              templateUrls[acc.id] = customisationImageId;
-              return;
-            }
-
-            try {
-              const res = await getCustomisationTemplates(acc.id);
-              const templateImg = res.images.find(
-                (img) => img.id === customisationImageId
-              );
-              if (templateImg) {
-                templateUrls[acc.id] = templateImg.url;
-              }
-            } catch {
-              // Fall back to the standard product image when templates are unavailable.
-            }
-          })
-        );
+          templateUrls[acc.id] = customisationUploadSrc(
+            acc.id,
+            customisationImageId
+          );
+        });
         setCustomisationUrls(templateUrls);
 
         if (cartItemId && cartItems.length > 0) {
